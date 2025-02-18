@@ -3,8 +3,8 @@ from typing import Iterator, Optional, Tuple, Union
 
 import numpy as np
 
+from src.datasets.helper import DatasetName
 from src.trainers.evaluation_trainer import EvaluationTrainer
-from ssl_library.src.datasets.helper import DatasetName
 
 
 class ExperimentStandardSplit(EvaluationTrainer):

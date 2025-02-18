@@ -1,12 +1,12 @@
 # PASSION Data Use Public License ("PASSION License")
 
-By exercising the Licensed Rights (defined below), You accept and agree to be bound by the terms and conditions of this PASSION Data Use Public License ("PASSION License"). 
+By exercising the Licensed Rights (defined below), You accept and agree to be bound by the terms and conditions of this PASSION Data Use Public License ("PASSION License").
 
 To the extent this PASSION License may be interpreted as a contract, You are granted the Licensed Rights in consideration of Your acceptance of these terms and conditions, and the Licensor grants You such rights in consideration of benefits the Licensor receives from making the Licensed Material available under these terms and conditions.
 
 ## Section 1 -- Definitions.
 
-  a. **“Adapted Material”** means material subject to Copyright and Similar Rights derived from or based upon the Licensed Material and in which the Licensed Material is translated, altered, arranged, transformed, or otherwise modified in a manner requiring permission under the Copyright and Similar Rights held by the Licensor. 
+  a. **“Adapted Material”** means material subject to Copyright and Similar Rights derived from or based upon the Licensed Material and in which the Licensed Material is translated, altered, arranged, transformed, or otherwise modified in a manner requiring permission under the Copyright and Similar Rights held by the Licensor.
 
   b. **“Adapter's License”** means the license You apply to Your Copyright and Similar Rights in Your contributions to Adapted Material in accordance with the terms and conditions of this PASSION License.
 
@@ -33,31 +33,31 @@ To the extent this PASSION License may be interpreted as a contract, You are gra
   a. **License grant.**
 
        1. Subject to the terms and conditions of this PASSION License, the Licensor hereby grants You a worldwide, royalty-free, non-sublicensable (except as set forth herein), non-exclusive, irrevocable license to exercise the Licensed Rights in the Licensed Material to:
-           
-            a. reproduce and Share the Licensed Material, in whole or in part, **for non-commercial purposes only**;  
-            
+
+            a. reproduce and Share the Licensed Material, in whole or in part, **for non-commercial purposes only**;
+
             b. produce, reproduce, and Share Adapted Material, **for non-commercial purposes only**.
-            
+
             Commercial use of the Licensed Material is strictly prohibited under this PASSION License.
 
-       2. **Exceptions and Limitations.**  
+       2. **Exceptions and Limitations.**
           For the avoidance of doubt, where Exceptions and Limitations apply to Your use, this PASSION License does not apply, and You do not need to comply with its terms and conditions.
 
-       3. **Term.**  
+       3. **Term.**
           The term of this PASSION License is specified in Section 6(a).
 
-       4. **Media and formats; technical modifications allowed.**  
+       4. **Media and formats; technical modifications allowed.**
           The Licensor authorizes You to exercise the Licensed Rights in all media and formats whether now known or hereafter created, and to make technical modifications necessary to do so. The Licensor waives and/or agrees not to assert any right or authority to forbid You from making technical modifications necessary to exercise the Licensed Rights, including technical modifications necessary to circumvent Effective Technological Measures. For purposes of this PASSION License, simply making modifications authorized by this Section 2(a)(4) never produces Adapted Material.
 
        5. **Downstream recipients.**
 
-            a. **Offer from the Licensor -- Licensed Material.**  
+            a. **Offer from the Licensor -- Licensed Material.**
                Every recipient of the Licensed Material automatically receives an offer from the Licensor to exercise the Licensed Rights under the terms and conditions of this PASSION License.
 
-            b. **No downstream restrictions.**  
+            b. **No downstream restrictions.**
                You may not offer or impose any additional or different terms or conditions on, or apply any Effective Technological Measures to, the Licensed Material and/or any Adapted Materials if doing so restricts exercise of the Licensed Rights by any recipient of the Licensed Material and/or any Adapted Materials.
 
-       6. **No endorsement.**  
+       6. **No endorsement.**
           Nothing in this PASSION License constitutes or may be construed as permission to assert or imply that You are, or that Your use of the Licensed Material is, connected with, or sponsored, endorsed, or granted official status by, the Licensor or others designated to receive attribution as provided in Section 3(a)(1)(A)(i).
 
   b. **Other rights.**
@@ -98,13 +98,13 @@ Your exercise of the Licensed Rights is expressly made subject to the following 
 
        4. If You Share Adapted Material You produce, the Adapter's License You apply must not prevent recipients of the Adapted Material from complying with this PASSION License.
 
-  b. **Restrictions**:  
+  b. **Restrictions**:
 
        1. **Non-Commercial Use Only**: The Licensed Material and any Adapted Material may only be used for non-commercial purposes.
 
        2. **Prohibition on Re-identification**: You may not make any attempt to re-identify or re-link any of the individual data subjects whose data has been de-identified to create the Licensed Materials. Re-identification or re-linking of any such individual subjects is strictly prohibited and results in the immediate termination of all rights granted to the Licensed Materials and/or any Adapted Materials.
 
-       3. **Sharing Restrictions**:  
+       3. **Sharing Restrictions**:
            - You must not share the **direct download link** to the Licensed Material.
            - You may only share the **link to the website** hosting the Licensed Material, not the direct download link.
            - You are **prohibited from reposting** the Licensed Material on any other data hosting platforms or websites.
@@ -119,8 +119,8 @@ Where the Licensed Rights include Sui Generis Database Rights that apply to Your
 
 ## Section 5 -- Disclaimer of Warranties and Limitation of Liability.
 
-  a. **Unless otherwise separately undertaken by the Licensor, to the extent possible, the Licensor offers the Licensed Material as-is and as-available, and makes no representations or warranties of any kind concerning the Licensed Material, whether express, implied, statutory, or other. This includes, without limitation, warranties of title, merchantability, fitness for a particular purpose, non-infringement, absence of latent or other defects, accuracy, or the presence or absence of errors, whether or not known or discoverable.**  
-   
+  a. **Unless otherwise separately undertaken by the Licensor, to the extent possible, the Licensor offers the Licensed Material as-is and as-available, and makes no representations or warranties of any kind concerning the Licensed Material, whether express, implied, statutory, or other. This includes, without limitation, warranties of title, merchantability, fitness for a particular purpose, non-infringement, absence of latent or other defects, accuracy, or the presence or absence of errors, whether or not known or discoverable.**
+
   b. **To the extent possible, in no event will the Licensor be liable to You on any legal theory (including, without limitation, negligence) or otherwise for any direct, special, indirect, incidental, consequential, punitive, exemplary, or other losses, costs, expenses, or damages arising out of this PASSION License or use of the Licensed Material, even if the Licensor has been advised of the possibility of such losses, costs, expenses, or damages.**
 
   c. **The disclaimer of warranties and limitation of liability provided above shall be interpreted in a manner that, to the extent possible, most closely approximates an absolute disclaimer and waiver of all liability.**
