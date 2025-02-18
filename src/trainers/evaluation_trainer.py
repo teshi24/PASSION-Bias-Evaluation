@@ -19,6 +19,9 @@ from sklearn.model_selection import StratifiedGroupKFold
 from torchvision import transforms
 from tqdm import tqdm
 
+from src.datasets.helper import DatasetName, get_dataset
+from src.models.embedder import Embedder
+from src.models.helper import embed_dataset
 from src.trainers.eval_types.base import BaseEvalType
 from src.trainers.eval_types.dummy_classifier import (
     EvalDummyConstant,
@@ -28,9 +31,7 @@ from src.trainers.eval_types.dummy_classifier import (
 from src.trainers.eval_types.fine_tuning import EvalFineTuning
 from src.trainers.eval_types.knn import EvalKNN
 from src.trainers.eval_types.lin import EvalLin
-from ssl_library.src.datasets.helper import DatasetName, get_dataset
-from ssl_library.src.pkg import Embedder, embed_dataset
-from ssl_library.src.utils.utils import fix_random_seeds
+from src.utils.utils import fix_random_seeds
 
 eval_type_dict = {
     # Baselines

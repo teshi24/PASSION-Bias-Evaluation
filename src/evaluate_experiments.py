@@ -4,13 +4,13 @@ from pathlib import Path
 
 import yaml
 
+from src.datasets.helper import DatasetName
 from src.trainers.experiment_age_group_generalization import (
     ExperimentAgeGroupGeneralization,
 )
 from src.trainers.experiment_center_generalization import ExperimentCenterGeneralization
 from src.trainers.experiment_standard_split import ExperimentStandardSplit
-from ssl_library.src.datasets.helper import DatasetName
-from ssl_library.src.utils.loader import Loader
+from src.utils.loader import Loader
 
 my_parser = argparse.ArgumentParser(description="Experiments for the PASSION paper.")
 my_parser.add_argument(
