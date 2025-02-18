@@ -16,10 +16,10 @@ from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 from tqdm import tqdm
 
+from src.models.classifiers import LinearClassifier
+from src.optimizers.utils import get_optimizer_type
 from src.trainers.eval_types.base import BaseEvalType
-from ssl_library.src.models.fine_tuning.classifiers import LinearClassifier
-from ssl_library.src.optimizers.utils import get_optimizer_type
-from ssl_library.src.utils.utils import (
+from src.utils.utils import (
     EarlyStopping,
     restart_from_checkpoint,
     save_checkpoint,
