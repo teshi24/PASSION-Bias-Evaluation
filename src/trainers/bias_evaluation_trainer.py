@@ -3,12 +3,12 @@ import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterator, Optional, Tuple, Union
-from loguru import logger
 
 import numpy as np
 import pandas as pd
 import torch
 import wandb
+from loguru import logger
 from sklearn.metrics import (
     balanced_accuracy_score,
     classification_report,
@@ -123,39 +123,41 @@ class BiasEvaluationTrainer(ABC, object):
             transform=self.transform,
             **data_config[dataset_name.value],
         )
-        # load the correct model to use as initialization
-        self.model, self.model_out_dim = self.load_model(
-            SSL_model=SSL_model,
-        )
-        logger.debug('model loaded')
-        # check if the cache contains the embeddings already
-        cache_file = (
-            self.cache_path / f"{dataset_name.value}_{self.experiment_name}.pickle"
-        )
-        if cache_file.exists():
-            print(f"Found cached file loading: {cache_file}")
-            with open(cache_file, "rb") as file:
-                cached_dict = pickle.load(file)
-            self.emb_space = cached_dict["embedding_space"]
-            self.labels = cached_dict["labels"]
-            del cached_dict
-        else:
-            self.emb_space, self.labels, _, _ = embed_dataset(
-                torch_dataset=self.torch_dataset,
-                model=self.model,
-                n_layers=n_layers,
-                memmap=False,
-                normalize=False,
+
+        if config["train"]:
+            # load the correct model to use as initialization
+            self.model, self.model_out_dim = self.load_model(
+                SSL_model=SSL_model,
             )
-            del _
-            # save the embeddings and issues to cache
-            save_dict = {
-                "embedding_space": self.emb_space,
-                "labels": self.labels,
-            }
-            with open(cache_file, "wb") as handle:
-                pickle.dump(save_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        logger.debug('initialized')
+            logger.debug("model loaded")
+            # check if the cache contains the embeddings already
+            cache_file = (
+                self.cache_path / f"{dataset_name.value}_{self.experiment_name}.pickle"
+            )
+            if cache_file.exists():
+                print(f"Found cached file loading: {cache_file}")
+                with open(cache_file, "rb") as file:
+                    cached_dict = pickle.load(file)
+                self.emb_space = cached_dict["embedding_space"]
+                self.labels = cached_dict["labels"]
+                del cached_dict
+            else:
+                self.emb_space, self.labels, _, _ = embed_dataset(
+                    torch_dataset=self.torch_dataset,
+                    model=self.model,
+                    n_layers=n_layers,
+                    memmap=False,
+                    normalize=False,
+                )
+                del _
+                # save the embeddings and issues to cache
+                save_dict = {
+                    "embedding_space": self.emb_space,
+                    "labels": self.labels,
+                }
+                with open(cache_file, "wb") as handle:
+                    pickle.dump(save_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        logger.debug("initialized")
 
     @property
     @abstractmethod
@@ -180,8 +182,8 @@ class BiasEvaluationTrainer(ABC, object):
         return model, info.out_dim
 
     def evaluate(self):
-        logger.debug('evaluation starting')
-        #TODO fix
+        logger.debug("evaluation starting")
+        # TODO fix
         if False:
             if self.df_path.exists() and not self.append_to_df:
                 raise ValueError(
@@ -196,7 +198,7 @@ class BiasEvaluationTrainer(ABC, object):
                 split_name,
             ) in self.split_dataframe_iterator():
                 if config.get("n_folds", None) is not None:
-                    logger.debug('KFold starting')
+                    logger.debug("KFold starting")
                     k_fold = StratifiedGroupKFold(
                         n_splits=config["n_folds"],
                         random_state=self.seed,
@@ -246,7 +248,7 @@ class BiasEvaluationTrainer(ABC, object):
         saved_model_path: Union[Path, str, None] = None,
         detailed_evaluation: bool = False,
     ):
-        logger.debug('run evaluation on range starting')
+        logger.debug("run evaluation on range starting")
 
         # W&B configurations
         if e_type in (EvalFineTuning, EvalBias) and self.log_wandb:
@@ -262,8 +264,8 @@ class BiasEvaluationTrainer(ABC, object):
                 wandb_run_name += f"-{add_run_info}"
             wandb.run.name = wandb_run_name
             wandb.run.save()
-        if train:
-            logger.debug('training starting')
+        if config["train"]:
+            logger.debug("training starting")
 
             # get train / test set
             score_dict = e_type.evaluate(
@@ -281,7 +283,7 @@ class BiasEvaluationTrainer(ABC, object):
                 **config,
             )
         else:
-            logger.debug('loading saved dict')
+            logger.debug("loading saved dict")
             # TODO make more dynamic if possible, configurable
             score_dict = self.load_and_find_row(e_type, "Test", "finetuning")
 
