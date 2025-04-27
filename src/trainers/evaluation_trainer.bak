@@ -121,12 +121,11 @@ class EvaluationTrainer(ABC, object):
             transform=self.transform,
             **data_config[dataset_name.value],
         )
+        # load the correct model to use as initialization
         if SSL_model == "GoogleDermFound":
             self.dataset.return_embedding = True
             self.torch_dataset.dataset.return_embedding = True
-
-        # load the correct model to use as initialization
-        if SSL_model != "GoogleDermFound":
+        elif SSL_model != "GoogleDermFound":
             self.model, self.model_out_dim = self.load_model(
                 ckp_path=ckp_path,
                 SSL_model=SSL_model,
@@ -268,6 +267,7 @@ class EvaluationTrainer(ABC, object):
                 wandb_run_name += f"-{add_run_info}"
             wandb.run.name = wandb_run_name
             wandb.run.save()
+
         # get train / test set
         score_dict = e_type.evaluate(
             emb_space=self.emb_space,
@@ -283,6 +283,7 @@ class EvaluationTrainer(ABC, object):
             # rest of the method specific parameters set with kwargs
             **config,
         )
+
         if detailed_evaluation:
             # Detailed evaluation
             print("*" * 20 + f" {e_type.name()} " + "*" * 20)
