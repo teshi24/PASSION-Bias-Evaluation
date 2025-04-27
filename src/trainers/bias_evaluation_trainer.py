@@ -43,8 +43,6 @@ eval_type_dict = {
     # Models
     # "fine_tuning": EvalFineTuning,
     "bias_evaluation": EvalBias,
-    "kNN": EvalKNN,
-    "lin": EvalLin,
 }
 
 
@@ -124,7 +122,7 @@ class BiasEvaluationTrainer(ABC, object):
             **data_config[dataset_name.value],
         )
 
-        if config["train"]:
+        if config["bias_evaluation"]["train"]:
             # load the correct model to use as initialization
             self.model, self.model_out_dim = self.load_model(
                 SSL_model=SSL_model,
@@ -264,7 +262,7 @@ class BiasEvaluationTrainer(ABC, object):
                 wandb_run_name += f"-{add_run_info}"
             wandb.run.name = wandb_run_name
             wandb.run.save()
-        if config["train"]:
+        if train:
             logger.debug("training starting")
 
             # get train / test set
