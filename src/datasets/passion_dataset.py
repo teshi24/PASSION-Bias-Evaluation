@@ -21,7 +21,6 @@ class PASSIONLabel(Enum):
 
 def extract_subject_id(path: str):
     pattern = r"([A-Za-z]+[0-9]+)"
-    print(path)
     match = re.search(pattern, path)
     if match:
         return str(match.group(1)).strip()

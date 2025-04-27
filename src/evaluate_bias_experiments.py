@@ -6,10 +6,6 @@ import yaml
 
 from src.datasets.helper import DatasetName
 from src.trainers.bias_experiment_standard_split import BiasExperimentStandardSplit
-from src.trainers.experiment_age_group_generalization import (
-    ExperimentAgeGroupGeneralization,
-)
-from src.trainers.experiment_center_generalization import ExperimentCenterGeneralization
 from src.utils.loader import Loader
 
 my_parser = argparse.ArgumentParser(description="Experiments for the PASSION paper.")
@@ -29,6 +25,7 @@ my_parser.add_argument(
     action="store_true",
     help="If the experiment 2, i.e. detecting impetigo, should be run.",
 )
+# todo: fix
 my_parser.add_argument(
     "--exp3",
     action="store_true",
@@ -82,25 +79,5 @@ if __name__ == "__main__":
             append_to_df=args.append_results,
             log_wandb=log_wandb,
             add_info="impetigo",
-        )
-        trainer.evaluate()
-
-    if args.exp3:
-        trainer = ExperimentCenterGeneralization(
-            dataset_name=DatasetName.PASSION,
-            config=config,
-            SSL_model=model,
-            append_to_df=args.append_results,
-            log_wandb=log_wandb,
-        )
-        trainer.evaluate()
-
-    if args.exp4:
-        trainer = ExperimentAgeGroupGeneralization(
-            dataset_name=DatasetName.PASSION,
-            config=config,
-            SSL_model=model,
-            append_to_df=args.append_results,
-            log_wandb=log_wandb,
         )
         trainer.evaluate()

@@ -3,6 +3,7 @@ import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterator, Optional, Tuple, Union
+from loguru import logger
 
 import numpy as np
 import pandas as pd
@@ -126,7 +127,7 @@ class BiasEvaluationTrainer(ABC, object):
         self.model, self.model_out_dim = self.load_model(
             SSL_model=SSL_model,
         )
-
+        logger.debug('model loaded')
         # check if the cache contains the embeddings already
         cache_file = (
             self.cache_path / f"{dataset_name.value}_{self.experiment_name}.pickle"
@@ -154,6 +155,7 @@ class BiasEvaluationTrainer(ABC, object):
             }
             with open(cache_file, "wb") as handle:
                 pickle.dump(save_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        logger.debug('initialized')
 
     @property
     @abstractmethod
@@ -178,10 +180,13 @@ class BiasEvaluationTrainer(ABC, object):
         return model, info.out_dim
 
     def evaluate(self):
-        if self.df_path.exists() and not self.append_to_df:
-            raise ValueError(
-                f"Dataframe already exists, remove to start: {self.df_path}"
-            )
+        logger.debug('evaluation starting')
+        #TODO fix
+        if False:
+            if self.df_path.exists() and not self.append_to_df:
+                raise ValueError(
+                    f"Dataframe already exists, remove to start: {self.df_path}"
+                )
         self.dataset.return_path = False
 
         for e_type, config in self.eval_types:
@@ -191,6 +196,7 @@ class BiasEvaluationTrainer(ABC, object):
                 split_name,
             ) in self.split_dataframe_iterator():
                 if config.get("n_folds", None) is not None:
+                    logger.debug('KFold starting')
                     k_fold = StratifiedGroupKFold(
                         n_splits=config["n_folds"],
                         random_state=self.seed,
@@ -240,6 +246,8 @@ class BiasEvaluationTrainer(ABC, object):
         saved_model_path: Union[Path, str, None] = None,
         detailed_evaluation: bool = False,
     ):
+        logger.debug('run evaluation on range starting')
+
         # W&B configurations
         if e_type in (EvalFineTuning, EvalBias) and self.log_wandb:
             _config = copy.deepcopy(self.config)
@@ -255,6 +263,8 @@ class BiasEvaluationTrainer(ABC, object):
             wandb.run.name = wandb_run_name
             wandb.run.save()
         if train:
+            logger.debug('training starting')
+
             # get train / test set
             score_dict = e_type.evaluate(
                 emb_space=self.emb_space,
@@ -271,6 +281,7 @@ class BiasEvaluationTrainer(ABC, object):
                 **config,
             )
         else:
+            logger.debug('loading saved dict')
             # TODO make more dynamic if possible, configurable
             score_dict = self.load_and_find_row(e_type, "Test", "finetuning")
 

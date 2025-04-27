@@ -19,6 +19,13 @@ If less computational power is available, this would require adaptations of the 
 ### Experiment: Generalization across Collection Centers and Age Groups (Sec. 5, Paragraph 2 and 3)
 > python -m src.evaluate_experiments --config_path configs/default.yaml --exp3 --exp4
 
+
+
+### Bias Experiment: Get more detailed infos about Differential Diagnosis and Detecting Impetigo results
+> python -m src.evaluate_bias_experiments --config_path configs/default.yaml --exp1 --exp2
+#TODO: fix when training gets parameterized
+
+
 ## Code and test conventions
 - `black` for code style
 - `isort` for import sorting

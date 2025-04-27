@@ -2,6 +2,7 @@ import copy
 from collections import OrderedDict
 from pathlib import Path
 from typing import Optional, Union
+from loguru import logger
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -76,8 +77,10 @@ class EvalBias(BaseEvalType):
         use_lr_scheduler: bool = False,
         log_wandb: bool = False,
         debug: bool = False,
-        train: bool = True**kwargs,
+        train: bool = True,
+        **kwargs,
     ) -> dict:
+        logger.debug('bias evaluation in BiasEvalType starting')
         # if not train and saved_model_path is not None:
         #         # restart_from_checkpoint(
         #         #     Path(saved_model_path) / "checkpoints" / "model_best.pth",
