@@ -39,3 +39,33 @@ fine_tuning:
     # head parameters
     use_bn_in_head: True
     dropout_in_head: 0.4
+
+bias_evaluation:
+    n_folds: 1
+    eval_test_performance: True
+    # method specific parameters
+    train: False
+    train_epochs: 100
+    batch_size: *batch_size
+    learning_rate: 1.0e-05
+    find_optimal_lr: True
+    use_lr_scheduler: True
+    warmup_epochs: 10
+    early_stopping_patience: 20
+    num_workers: 24
+    debug: True
+    # head parameters
+    use_bn_in_head: True
+    dropout_in_head: 0.4
+
+#exp1:
+#    LR suggestion: steepest gradient
+#    Suggested LR: 1.59E-04
+#
+#exp2:
+#    LR suggestion: steepest gradient
+#    Suggested LR: 1.48E-01
+#
+#exp3:
+#    LR suggestion: steepest gradient
+#    Suggested LR: 3.59E-04
