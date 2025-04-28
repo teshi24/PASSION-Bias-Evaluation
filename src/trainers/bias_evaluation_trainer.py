@@ -195,7 +195,7 @@ class BiasEvaluationTrainer(ABC, object):
                 test_range,
                 split_name,
             ) in self.split_dataframe_iterator():
-                if config["train"]:
+                if True or config["train"]:
                     if config.get("n_folds", None) is not None:
                         logger.debug("KFold starting")
                         k_fold = StratifiedGroupKFold(
