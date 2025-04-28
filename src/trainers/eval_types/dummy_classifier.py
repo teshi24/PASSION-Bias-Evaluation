@@ -25,8 +25,6 @@ class EvalDummy(BaseEvalType):
             train_range=train_range,
             evaluation_range=evaluation_range,
         )
-        print(train)
-        print(evaluation)
         X_train, y_train = train
         X_eval, y_eval = evaluation
         del train, evaluation

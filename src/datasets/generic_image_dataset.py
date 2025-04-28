@@ -95,6 +95,6 @@ class GenericImageDataset(BaseDataset):
 
         diagnosis = self.meta_data.loc[self.meta_data.index[index], self.LBL_COL]
         if self.return_path:
-            return image, img_name, int(diagnosis), index
+            return image, img_name, int(diagnosis)
         else:
-            return image, int(diagnosis), index
+            return image, int(diagnosis)

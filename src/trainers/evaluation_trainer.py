@@ -89,7 +89,6 @@ class EvaluationTrainer(ABC, object):
             [],
             columns=[
                 "Score",
-                "Metadata",
                 "EvalTargets",
                 "EvalPredictions",
                 "EvalType",
@@ -268,7 +267,6 @@ class EvaluationTrainer(ABC, object):
                 wandb_run_name += f"-{add_run_info}"
             wandb.run.name = wandb_run_name
             wandb.run.save()
-
         # get train / test set
         score_dict = e_type.evaluate(
             emb_space=self.emb_space,
@@ -284,7 +282,6 @@ class EvaluationTrainer(ABC, object):
             # rest of the method specific parameters set with kwargs
             **config,
         )
-
         if detailed_evaluation:
             # Detailed evaluation
             print("*" * 20 + f" {e_type.name()} " + "*" * 20)

@@ -347,24 +347,18 @@ class EvalFineTuning(BaseEvalType):
         # create eval predictions for saving
         targets, predictions = [], []
         classifier.eval()
-        for img, target, index in eval_loader:
+        for img, target in eval_loader:
             img = img.to(device)
             target = target.to(device)
             with torch.no_grad():
                 pred = classifier(img)
             targets.append(target.cpu())
             predictions.append(pred.cpu())
-            indices.append(index.cpu())
         targets = torch.concat(targets).cpu().numpy()
         predictions = torch.concat(predictions).argmax(dim=-1).cpu().numpy()
-
-        indices = torch.concat(indices).cpu().numpy()
-        metadata = [dataset.metadata[i] for i in indices]
-        logger.debug(f"indices: {indices}")
-        logger.debug(f"metadata: {metadata}")
         return {
+            # HERE
             "score": float(eval_scores_dict["f1"]["scores"][best_epoch] * 100),
-            "metadata": metadata,
             "targets": targets,
             "predictions": predictions,
         }
