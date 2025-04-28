@@ -127,6 +127,7 @@ class EvaluationTrainer(ABC, object):
             self.model, self.model_out_dim = self.load_model(SSL_model=SSL_model)
         #
         # check if the cache contains the embeddings already
+        logger.debug("embed data")
         cache_file = (
             self.cache_path / f"{dataset_name.value}_{self.experiment_name}.pickle"
         )
@@ -168,6 +169,7 @@ class EvaluationTrainer(ABC, object):
         pass
 
     def load_model(self, SSL_model: str):
+        logger.debug("load model")
         model, info, _ = Embedder.load_pretrained(
             SSL_model,
             return_info=True,

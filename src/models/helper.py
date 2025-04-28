@@ -68,9 +68,10 @@ def embed_dataset(
     # embed the dataset
     for i, batch_tup in iterator:
         if len(batch_tup) == 4:
+            # TODO remove log
             print(f"batch_tup: {batch_tup}")
             batch, path, label, index = batch_tup
-        if len(batch_tup) == 3:
+        elif len(batch_tup) == 3:
             batch, path, label = batch_tup
         elif len(batch_tup) == 2:
             batch, label = batch_tup
