@@ -16,7 +16,6 @@ from torchinfo import summary
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 from tqdm import tqdm
-from wandb.integration.kfp.kfp_patch import wandb_log
 
 from src.models.classifiers import LinearClassifier
 from src.optimizers.utils import get_optimizer_type
