@@ -20,7 +20,7 @@ class PASSIONLabel(Enum):
 
 
 def extract_subject_id(path: str):
-    pattern = r"Files_Matrix_([A-Za-z0-9]+)"
+    pattern = r"([A-Za-z]+[0-9]+)"
     match = re.search(pattern, path)
     if match:
         return str(match.group(1)).strip()
@@ -94,9 +94,7 @@ class PASSIONDataset(GenericImageDataset):
         if split_file is not None:
             split_file = self.check_path(self.dataset_dir / split_file)
             df_split = pd.read_csv(split_file)
-            self.meta_data = self.meta_data.merge(
-                df_split, on="subject_id", how="inner"
-            )
+            self.meta_data = self.meta_data.merge(df_split, on="subject_id", how="left")
             self.meta_data.reset_index(drop=True, inplace=True)
             del df_split
 
@@ -107,7 +105,7 @@ class PASSIONDataset(GenericImageDataset):
         # precomputed embeddings
         self.pre_computed_embeddings = None
         if pre_computed_embeddings_path is not None:
-            import pickle5 as pickle
+            import pickle
 
             with open(pre_computed_embeddings_path, "rb") as file:
                 self.pre_computed_embeddings = pickle.load(file)
