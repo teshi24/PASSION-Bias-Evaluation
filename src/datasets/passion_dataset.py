@@ -156,6 +156,6 @@ class PASSIONDataset(GenericImageDataset):
             image = self.val_transform(image)
 
         if self.return_path:
-            return image, img_name, int(diagnosis)
+            return image, img_name, int(diagnosis), index
         else:
-            return image, int(diagnosis)
+            return image, int(diagnosis), index

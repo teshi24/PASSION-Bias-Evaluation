@@ -89,6 +89,7 @@ class EvaluationTrainer(ABC, object):
             [],
             columns=[
                 "Score",
+                "Metadata",
                 "EvalTargets",
                 "EvalPredictions",
                 "EvalType",
