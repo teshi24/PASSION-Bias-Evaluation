@@ -41,7 +41,7 @@ fine_tuning:
     dropout_in_head: 0.4
 
 bias_evaluation:
-    n_folds: 5
+    n_folds: 1
     eval_test_performance: True
     # method specific parameters
     train: False
