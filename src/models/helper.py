@@ -4,11 +4,13 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 import torch
+from loguru import logger
 from tqdm.auto import tqdm
 
 ARR_TYPE = Union[np.ndarray, np.memmap, torch.Tensor]
 
 
+# todo: add performance improvements to main branch
 def embed_dataset(
     torch_dataset: torch.utils.data.DataLoader,
     model: Optional[torch.nn.Sequential],
