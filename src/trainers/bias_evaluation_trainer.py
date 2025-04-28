@@ -122,7 +122,7 @@ class BiasEvaluationTrainer(ABC, object):
             **data_config[dataset_name.value],
         )
 
-        if True or config["bias_evaluation"]["train"]:
+        if config["bias_evaluation"]["train"]:  # True or
             # load the correct model to use as initialization
             self.model, self.model_out_dim = self.load_model(
                 SSL_model=SSL_model,
