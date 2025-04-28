@@ -143,7 +143,13 @@ class EvaluationTrainer(ABC, object):
             self.indices = cached_dict["indices"]
             del cached_dict
         else:
-            self.emb_space, self.labels, self.paths, self.indices = embed_dataset(
+            (
+                self.emb_space,
+                self.labels,
+                self.images,
+                self.paths,
+                self.indices,
+            ) = embed_dataset(
                 torch_dataset=self.torch_dataset,
                 model=self.model,
                 n_layers=n_layers,
