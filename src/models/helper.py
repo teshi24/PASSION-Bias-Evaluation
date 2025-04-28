@@ -109,11 +109,18 @@ def embed_dataset(
             images[batch_size * i : batch_size * (i + 1), :] = batch.cpu()
             # if memmap:
             #    images.flush()
+            if i % 77 == 0:
+                logger.debug(f"path: {path}")
+                logger.debug(f"index: {index}")
             if path is not None:
                 paths += path
             if index is not None:
                 indices += index
     labels = torch.concat(labels).cpu()
+
+    logger.debug(f"paths: {paths}")
+    logger.debug(f"indices: {indices}")
+
     # if return_only_embedding_and_labels:
     #    return emb_space, labels
     if len(paths) > 0:
