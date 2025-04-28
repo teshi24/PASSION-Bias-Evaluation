@@ -37,9 +37,9 @@ from src.utils.utils import fix_random_seeds
 
 eval_type_dict = {
     # Baselines
-    #"dummy_most_frequent": EvalDummyMostFrequent,
-    #"dummy_uniform": EvalDummyUniform,
-    #"dummy_constant": EvalDummyConstant,
+    # "dummy_most_frequent": EvalDummyMostFrequent,
+    # "dummy_uniform": EvalDummyUniform,
+    # "dummy_constant": EvalDummyConstant,
     # Models
     # "fine_tuning": EvalFineTuning,
     "bias_evaluation": EvalBias,
@@ -122,7 +122,7 @@ class BiasEvaluationTrainer(ABC, object):
             **data_config[dataset_name.value],
         )
 
-        if config["bias_evaluation"]["train"]:
+        if True or config["bias_evaluation"]["train"]:
             # load the correct model to use as initialization
             self.model, self.model_out_dim = self.load_model(
                 SSL_model=SSL_model,
@@ -263,7 +263,7 @@ class BiasEvaluationTrainer(ABC, object):
                 wandb_run_name += f"-{add_run_info}"
             wandb.run.name = wandb_run_name
             wandb.run.save()
-        if 'train' in config and config['train']:
+        if "train" in config and config["train"]:
             logger.debug("training starting")
 
             # get train / test set
@@ -339,18 +339,18 @@ class BiasEvaluationTrainer(ABC, object):
             print("=" * 20 + " grouped output per case using subgroup " + "~=" * 20)
             self.print_subgroup_results(eval_df, score_dict, group_by=["fitzpatrick"])
             self.print_subgroup_results(eval_df, score_dict, group_by=["sex"])
-            #todo: add bins for age
-            #self.print_subgroup_results(eval_df, score_dict, group_by=["age"])
+            # todo: add bins for age
+            # self.print_subgroup_results(eval_df, score_dict, group_by=["age"])
             self.print_subgroup_results(
                 eval_df, score_dict, group_by=["fitzpatrick", "sex"]
             )
-            #self.print_subgroup_results(
+            # self.print_subgroup_results(
             #    eval_df, score_dict, group_by=["fitzpatrick", "age"]
-            #)
-            #self.print_subgroup_results(eval_df, score_dict, group_by=["sex", "age"])
-            #self.print_subgroup_results(
+            # )
+            # self.print_subgroup_results(eval_df, score_dict, group_by=["sex", "age"])
+            # self.print_subgroup_results(
             #    eval_df, score_dict, group_by=["fitzpatrick", "sex", "age"]
-            #)
+            # )
 
             print("=" * 20 + " grouped output per case - majority voted" + "~=" * 20)
             self.print_grouped_result(eval_df_aggregated, group_by="sex")
@@ -506,7 +506,7 @@ class BiasEvaluationTrainer(ABC, object):
         self.df = pd.read_csv(self.df_path)
 
         # Filter the dataframe to find the row matching the given parameters
-        #todo: do not use magic texts
+        # todo: do not use magic texts
         filtered_row = self.df[
             (self.df["EvalType"] == "Standard_TRAIN_TEST")
             & (self.df["AdditionalRunInfo"] == add_run_info)
@@ -515,20 +515,20 @@ class BiasEvaluationTrainer(ABC, object):
 
         # todo fix where this is
         import ast
+
         def parse_targets(targets_str):
             # Replace spaces between numbers with commas
-            targets_str = targets_str.replace(' ', ',')
+            targets_str = targets_str.replace(" ", ",")
             # Add square brackets to make it a valid list format if it's not already
-            if not targets_str.startswith('['):
-                targets_str = '[' + targets_str
-            if not targets_str.endswith(']'):
-                targets_str = targets_str + ']'            
+            if not targets_str.startswith("["):
+                targets_str = "[" + targets_str
+            if not targets_str.endswith("]"):
+                targets_str = targets_str + "]"
             # Now safely evaluate the string to a list using literal_eval
             result = [int(x) for x in ast.literal_eval(targets_str)]
-            logger.debug(f'parse result: {result}')
+            logger.debug(f"parse result: {result}")
             return pd.Series(result)
 
-    
         # If we find a matching row, return the relevant information
         if not filtered_row.empty:
             result = filtered_row.iloc[-1]  # Get most recent added entry
@@ -538,5 +538,7 @@ class BiasEvaluationTrainer(ABC, object):
                 "predictions": parse_targets(result["EvalPredictions"]),
             }
         else:
-            logger.debug(f'No matching row found for {"Standard_TRAIN_TEST"}, {add_run_info}, {split_name} in data: {self.df}')
+            logger.debug(
+                f'No matching row found for {"Standard_TRAIN_TEST"}, {add_run_info}, {split_name} in data: {self.df}'
+            )
             return None
