@@ -68,8 +68,6 @@ def embed_dataset(
     # embed the dataset
     for i, batch_tup in iterator:
         if len(batch_tup) == 4:
-            # TODO remove log
-            print(f"batch_tup: {batch_tup}")
             batch, path, label, index = batch_tup
         elif len(batch_tup) == 3:
             batch, path, label = batch_tup
@@ -77,7 +75,7 @@ def embed_dataset(
             batch, label = batch_tup
             path = None
         else:
-            raise ValueError("Unknown batch tuple.")
+            raise ValueError(f"Unknown batch tuple: {batch_tup}")
 
         with torch.no_grad():
             if model is not None:
