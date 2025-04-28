@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torchmetrics
 import wandb
+from loguru import logger
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch_lr_finder import LRFinder
@@ -15,6 +16,7 @@ from torchinfo import summary
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 from tqdm import tqdm
+from wandb.integration.kfp.kfp_patch import wandb_log
 
 from src.models.classifiers import LinearClassifier
 from src.optimizers.utils import get_optimizer_type
@@ -77,27 +79,9 @@ class EvalFineTuning(BaseEvalType):
         debug: bool = False,
         **kwargs,
     ) -> dict:
-        # create the classifier
-        classifier_list = []
-        if model is not None:
-            model = copy.deepcopy(model)
-            classifier_list = [
-                ("backbone", model),
-                ("flatten", torch.nn.Flatten()),
-            ]
-        classifier_list.append(
-            (
-                "fc",
-                LinearClassifier(
-                    model_out_dim,
-                    dataset.n_classes,
-                    large_head=False,
-                    use_bn=use_bn_in_head,
-                    dropout_rate=dropout_in_head,
-                ),
-            ),
+        classifier, model = cls.create_classifier(
+            dataset, dropout_in_head, model, model_out_dim, use_bn_in_head
         )
-        classifier = torch.nn.Sequential(OrderedDict(classifier_list))
         # get dataloader for batched compute
         train_loader, eval_loader = cls.get_train_eval_loaders(
             dataset=dataset,
@@ -106,54 +90,24 @@ class EvalFineTuning(BaseEvalType):
             batch_size=batch_size,
             num_workers=num_workers,
         )
-        if model is not None:
-            device = model.device
-        else:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = cls.get_device(model)
         classifier.to(device)
-        # make sure the classifier can get trained
-        set_requires_grad(classifier, True)
-        if debug and model is not None:
-            try:
-                summary(classifier, input_size=(1, 3, 224, 224))
-            except RuntimeError:
-                print("Summary can not be displayed for a Huggingface model.")
-                print(
-                    f"Number of parameters backbone: {classifier.backbone.model.num_parameters():,}"
-                )
-        if log_wandb:
-            wandb.watch(classifier, log="all", log_freq=len(train_loader))
+
+        cls.configure_classifier_base(classifier, debug, log_wandb, model, train_loader)
         # loss function, optimizer, scores
         criterion = torch.nn.CrossEntropyLoss(
             weight=train_loader.dataset.get_class_weights(),
         )
         criterion = criterion.to(device)
-        optimizer_cls = get_optimizer_type(optimizer_name="adam")
-        optimizer = optimizer_cls(
-            params=classifier.parameters(),
-            lr=learning_rate,
+        optimizer = cls.configure_optimizer(
+            classifier,
+            criterion,
+            device,
+            find_optimal_lr,
+            learning_rate,
+            log_wandb,
+            train_loader,
         )
-        if find_optimal_lr:
-            # automatic learning rate finder
-            lr_finder = LRFinder(classifier, optimizer, criterion, device=device)
-            lr_finder.range_test(train_loader, end_lr=100, num_iter=100)
-            lrs = lr_finder.history["lr"]
-            losses = lr_finder.history["loss"]
-            # log the LRFinder plot
-            fig, ax = plt.subplots()
-            lr_finder.plot(ax=ax)
-            wandb.log({"LRFinder_Plot": wandb.Image(fig)})
-            # to reset the model and optimizer to their initial state
-            lr_finder.reset()
-            try:
-                min_grad_idx = (np.gradient(np.array(losses))).argmin()
-                best_lr = lrs[min_grad_idx]
-                optimizer = optimizer_cls(
-                    params=classifier.parameters(),
-                    lr=best_lr,
-                )
-            except ValueError:
-                print("Failed to compute the gradients. Relying on default lr.")
 
         # we use early stopping to speed up the training
         early_stopping = EarlyStopping(
@@ -184,32 +138,21 @@ class EvalFineTuning(BaseEvalType):
         start_epoch = to_restore["epoch"]
 
         # define metrics
+        metric_param = {
+            "task": "multiclass",
+            "num_classes": classifier.fc.num_labels,
+            "average": "macro",
+        }
         loss_metric_train = torchmetrics.MeanMetric().to(device)
-        f1_score_train = torchmetrics.F1Score(
-            task="multiclass",
-            num_classes=classifier.fc.num_labels,
-            average="macro",
-        ).to(device)
+        f1_score_train = torchmetrics.F1Score(**metric_param).to(device)
 
         loss_metric_val = torchmetrics.MeanMetric().to(device)
-        f1_score_val = torchmetrics.F1Score(
-            task="multiclass",
-            num_classes=classifier.fc.num_labels,
-            average="macro",
-        ).to(device)
-        precision_val = torchmetrics.Precision(
-            task="multiclass",
-            num_classes=classifier.fc.num_labels,
-            average="macro",
-        ).to(device)
-        recall_val = torchmetrics.Recall(
-            task="multiclass",
-            num_classes=classifier.fc.num_labels,
-            average="macro",
-        ).to(device)
+        f1_score_val = torchmetrics.F1Score(**metric_param).to(device)
+        precision_val = torchmetrics.Precision(**metric_param).to(device)
+        recall_val = torchmetrics.Recall(**metric_param).to(device)
         auroc_val = torchmetrics.AUROC(
-            task="multiclass",
-            num_classes=classifier.fc.num_labels,
+            task=metric_param["task"],
+            num_classes=metric_param["num_classes"],
         ).to(device)
 
         # start training
@@ -240,18 +183,11 @@ class EvalFineTuning(BaseEvalType):
             total=train_epochs,
             desc="Model Training",
         ):
-            if epoch >= warmup_epochs:
-                # make sure the classifier and backbone get trained
-                set_requires_grad(classifier, True)
-            else:
-                # freeze the backbone and let only the classifier be trained
-                set_requires_grad(classifier, True)
-                if hasattr(classifier, "backbone"):
-                    set_requires_grad(classifier.backbone, False)
+            cls.freeze_as_needed(classifier, epoch, warmup_epochs)
 
             # training
             classifier.train()
-            for img, target in train_loader:
+            for img, _, target in train_loader:
                 img = img.to(device)
                 target = target.to(device)
 
@@ -283,7 +219,7 @@ class EvalFineTuning(BaseEvalType):
 
             # Evaluation
             classifier.eval()
-            for img, target in eval_loader:
+            for img, _, target, _ in eval_loader:
                 img = img.to(device)
                 target = target.to(device)
                 with torch.no_grad():
@@ -318,6 +254,64 @@ class EvalFineTuning(BaseEvalType):
 
         # get the best epoch in terms of F1 score
         wandb.unwatch()
+        best_epoch = cls.get_best_epoch(
+            epoch, eval_scores_dict, l_loss_val, log_wandb, step
+        )
+        classifier.load_state_dict(best_model_wts)
+        if saved_model_path is not None:
+            cls.save_model_checkpoint(
+                classifier, criterion, epoch, optimizer, saved_model_path
+            )
+
+        # create eval predictions for saving
+        img_names, targets, predictions, indices = [], [], [], []
+        targets.to(device)
+        predictions.to(device)
+        classifier.eval()
+        for img, img_name, target, index in eval_loader:
+            img = img.to(device)
+            target = target.to(device)
+            with torch.no_grad():
+                pred = classifier(img)
+            targets.append(target)
+            predictions.append(pred)
+
+            img_names.append(img_name)
+            indices.append(index)
+        img_names = torch.cat(img_names).numpy()
+        targets = torch.concat(targets).cpu().numpy()
+        predictions = torch.concat(predictions).argmax(dim=-1).cpu().numpy()
+        indices = torch.cat(indices).numpy()
+        results = {
+            "score": float(eval_scores_dict["f1"]["scores"][best_epoch] * 100),
+            "filenames": img_names,
+            "indices": indices,
+            "targets": targets,
+            "predictions": predictions,
+        }
+        logger.debug(f"evaluation results: {results}")
+        return results
+
+    @classmethod
+    def save_model_checkpoint(
+        cls, classifier, criterion, epoch, optimizer, saved_model_path
+    ):
+        save_dict = {
+            "arch": type(classifier).__name__,
+            "epoch": epoch,
+            "classifier": classifier,
+            "optimizer": optimizer.state_dict(),
+            "loss": criterion.state_dict(),
+        }
+        save_checkpoint(
+            run_dir=saved_model_path,
+            save_dict=save_dict,
+            epoch=epoch,
+            save_best=True,
+        )
+
+    @classmethod
+    def get_best_epoch(cls, epoch, eval_scores_dict, l_loss_val, log_wandb, step):
         best_epoch = torch.Tensor(eval_scores_dict["f1"]["scores"]).argmax()
         if log_wandb:
             log_dict = {
@@ -329,39 +323,111 @@ class EvalFineTuning(BaseEvalType):
             for score_name, _score_dict in eval_scores_dict.items():
                 log_dict[f"best_eval_{score_name}"] = _score_dict["scores"][best_epoch]
             wandb.log(log_dict)
-        classifier.load_state_dict(best_model_wts)
-        if saved_model_path is not None:
-            save_dict = {
-                "arch": type(classifier).__name__,
-                "epoch": epoch,
-                "classifier": classifier,
-                "optimizer": optimizer.state_dict(),
-                "loss": criterion.state_dict(),
-            }
-            save_checkpoint(
-                run_dir=saved_model_path,
-                save_dict=save_dict,
-                epoch=epoch,
-                save_best=True,
-            )
-        # create eval predictions for saving
-        targets, predictions = [], []
-        classifier.eval()
-        for img, target in eval_loader:
-            img = img.to(device)
-            target = target.to(device)
-            with torch.no_grad():
-                pred = classifier(img)
-            targets.append(target.cpu())
-            predictions.append(pred.cpu())
-        targets = torch.concat(targets).cpu().numpy()
-        predictions = torch.concat(predictions).argmax(dim=-1).cpu().numpy()
-        return {
-            # HERE
-            "score": float(eval_scores_dict["f1"]["scores"][best_epoch] * 100),
-            "targets": targets,
-            "predictions": predictions,
-        }
+        return best_epoch
+
+    @classmethod
+    def freeze_as_needed(cls, classifier, epoch, warmup_epochs):
+        if epoch >= warmup_epochs:
+            # make sure the classifier and backbone get trained
+            set_requires_grad(classifier, True)
+        else:
+            # freeze the backbone and let only the classifier be trained
+            set_requires_grad(classifier, True)
+            if hasattr(classifier, "backbone"):
+                set_requires_grad(classifier.backbone, False)
+
+    @classmethod
+    def configure_optimizer(
+        cls,
+        classifier,
+        criterion,
+        device,
+        find_optimal_lr,
+        learning_rate,
+        log_wandb,
+        train_loader,
+    ):
+        optimizer_cls = get_optimizer_type(optimizer_name="adam")
+        optimizer = optimizer_cls(
+            params=classifier.parameters(),
+            lr=learning_rate,
+        )
+        if find_optimal_lr:
+            # automatic learning rate finder
+            lr_finder = LRFinder(classifier, optimizer, criterion, device=device)
+            lr_finder.range_test(train_loader, end_lr=100, num_iter=100)
+            lrs = lr_finder.history["lr"]
+            losses = lr_finder.history["loss"]
+            # log the LRFinder plot
+            fig, ax = plt.subplots()
+            lr_finder.plot(ax=ax)
+            if log_wandb:
+                wandb.log({"LRFinder_Plot": wandb.Image(fig)})
+            # to reset the model and optimizer to their initial state
+            lr_finder.reset()
+            try:
+                min_grad_idx = (np.gradient(np.array(losses))).argmin()
+                best_lr = lrs[min_grad_idx]
+                optimizer = optimizer_cls(
+                    params=classifier.parameters(),
+                    lr=best_lr,
+                )
+            except ValueError:
+                print("Failed to compute the gradients. Relying on default lr.")
+        return optimizer
+
+    @classmethod
+    def configure_classifier_base(
+        cls, classifier, debug, log_wandb, model, train_loader
+    ):
+        # make sure the classifier can get trained
+        set_requires_grad(classifier, True)
+        if debug and model is not None:
+            try:
+                summary(classifier, input_size=(1, 3, 224, 224))
+            except RuntimeError:
+                print("Summary can not be displayed for a Huggingface model.")
+                print(
+                    f"Number of parameters backbone: {classifier.backbone.model.num_parameters():,}"
+                )
+        if log_wandb:
+            wandb.watch(classifier, log="all", log_freq=len(train_loader))
+
+    @classmethod
+    def get_device(cls, model):
+        if model is not None:
+            device = model.device
+        else:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.debug(f"device: {device}")
+        return device
+
+    @classmethod
+    def create_classifier(
+        cls, dataset, dropout_in_head, model, model_out_dim, use_bn_in_head
+    ):
+        # create the classifier
+        classifier_list = []
+        if model is not None:
+            model = copy.deepcopy(model)
+            classifier_list = [
+                ("backbone", model),
+                ("flatten", torch.nn.Flatten()),
+            ]
+        classifier_list.append(
+            (
+                "fc",
+                LinearClassifier(
+                    model_out_dim,
+                    dataset.n_classes,
+                    large_head=False,
+                    use_bn=use_bn_in_head,
+                    dropout_rate=dropout_in_head,
+                ),
+            ),
+        )
+        classifier = torch.nn.Sequential(OrderedDict(classifier_list))
+        return classifier, model
 
     @classmethod
     def get_train_eval_loaders(

@@ -37,12 +37,11 @@ class PASSIONDataset(GenericImageDataset):
     def __init__(
         self,
         dataset_dir: Union[str, Path] = "data/PASSION/",
-        meta_data_file: Union[str, Path] = "passion_cleaned_final_case_level.csv",
+        meta_data_file: Union[str, Path] = "label.csv",
         split_file: Union[str, Path, None] = None,
         transform=None,
         val_transform=None,
         label_col: Union[PASSIONLabel, str] = PASSIONLabel.CONDITIONS,
-        return_path: bool = False,
         image_extensions: Sequence = (
             "*.jpeg",
             "*.jpg",
@@ -68,8 +67,6 @@ class PASSIONDataset(GenericImageDataset):
             Optional transform to be applied to the images.
         val_transform : Union[callable, optional]
             Optional transform to be applied to the images when in validation mode.
-        return_path : bool
-            If the path of the image should be returned or not.
         """
         if isinstance(label_col, str):
             label_col = PASSIONLabel[label_col]
@@ -78,7 +75,6 @@ class PASSIONDataset(GenericImageDataset):
             dataset_dir=dataset_dir,
             transform=transform,
             val_transform=val_transform,
-            return_path=return_path,
             image_extensions=image_extensions,
             **kwargs,
         )
@@ -126,7 +122,6 @@ class PASSIONDataset(GenericImageDataset):
             self.meta_data = self.meta_data[self.meta_data["embedding"].notna()]
             self.meta_data.reset_index(drop=True, inplace=True)
 
-        self.return_path = return_path
         self.return_embedding = return_embedding
         self.classes = list(lbl_mapping)
         self.n_classes = len(self.classes)
@@ -140,10 +135,7 @@ class PASSIONDataset(GenericImageDataset):
         if self.return_embedding:
             embedding = self.meta_data.loc[self.meta_data.index[index], "embedding"]
             embedding = torch.Tensor(embedding)
-            if self.return_path:
-                return embedding, img_name, int(diagnosis)
-            else:
-                return embedding, int(diagnosis)
+            return embedding, img_name, int(diagnosis)
 
         image = Image.open(img_name)
         image = image.convert("RGB")
@@ -152,7 +144,4 @@ class PASSIONDataset(GenericImageDataset):
         elif self.val_transform and not self.training:
             image = self.val_transform(image)
 
-        if self.return_path:
-            return image, img_name, int(diagnosis)
-        else:
-            return image, int(diagnosis)
+        return image, img_name, int(diagnosis), index

@@ -24,7 +24,6 @@ class ExperimentAgeGroupGeneralization(EvaluationTrainer):
         super().__init__(
             dataset_name=dataset_name,
             config=config,
-            ckp_path=ckp_path,
             SSL_model=SSL_model,
             output_path=output_path,
             cache_path=cache_path,

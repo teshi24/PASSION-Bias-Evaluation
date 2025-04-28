@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import wandb
+from loguru import logger
 from sklearn.metrics import (
     balanced_accuracy_score,
     classification_report,
@@ -29,8 +30,6 @@ from src.trainers.eval_types.dummy_classifier import (
     EvalDummyUniform,
 )
 from src.trainers.eval_types.fine_tuning import EvalFineTuning
-from src.trainers.eval_types.knn import EvalKNN
-from src.trainers.eval_types.lin import EvalLin
 from src.utils.utils import fix_random_seeds
 
 eval_type_dict = {
@@ -40,8 +39,6 @@ eval_type_dict = {
     "dummy_constant": EvalDummyConstant,
     # Models
     "fine_tuning": EvalFineTuning,
-    "kNN": EvalKNN,
-    "lin": EvalLin,
 }
 
 
@@ -50,7 +47,6 @@ class EvaluationTrainer(ABC, object):
         self,
         dataset_name: DatasetName,
         config: dict,
-        ckp_path: Optional[str] = None,
         SSL_model: str = "imagenet",
         output_path: Union[Path, str] = "assets/evaluation",
         cache_path: Union[Path, str] = "assets/evaluation/cache",
@@ -89,6 +85,8 @@ class EvaluationTrainer(ABC, object):
             [],
             columns=[
                 "Score",
+                "FileNames",
+                "Indices",
                 "EvalTargets",
                 "EvalPredictions",
                 "EvalType",
@@ -125,14 +123,9 @@ class EvaluationTrainer(ABC, object):
         if SSL_model == "GoogleDermFound":
             self.dataset.return_embedding = True
             self.torch_dataset.dataset.return_embedding = True
-        elif SSL_model != "GoogleDermFound":
-            self.model, self.model_out_dim = self.load_model(
-                ckp_path=ckp_path,
-                SSL_model=SSL_model,
-            )
         else:
-            self.model, self.model_out_dim = None, self.dataset[0][0].shape[0]
-
+            self.model, self.model_out_dim = self.load_model(SSL_model=SSL_model)
+        #
         # check if the cache contains the embeddings already
         cache_file = (
             self.cache_path / f"{dataset_name.value}_{self.experiment_name}.pickle"
@@ -170,23 +163,17 @@ class EvaluationTrainer(ABC, object):
     def split_dataframe_iterator(self) -> Iterator[Tuple[np.ndarray, np.ndarray, str]]:
         pass
 
-    def load_model(self, SSL_model: str, ckp_path: Optional[str] = None):
-        if ckp_path is not None:
-            model, info, _ = Embedder.load_dino(
-                ckp_path=ckp_path,
-                return_info=True,
-                n_head_layers=0,
-            )
-        else:
-            model, info, _ = Embedder.load_pretrained(
-                SSL_model,
-                return_info=True,
-                n_head_layers=0,
-            )
+    def load_model(self, SSL_model: str):
+        model, info, _ = Embedder.load_pretrained(
+            SSL_model,
+            return_info=True,
+            n_head_layers=0,
+        )
         # set the model in evaluation mode
         model = model.eval()
         # move to correct device
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.debug(f"device: {device}")
         model = model.to(device)
         return model, info.out_dim
 
@@ -195,7 +182,6 @@ class EvaluationTrainer(ABC, object):
             raise ValueError(
                 f"Dataframe already exists, remove to start: {self.df_path}"
             )
-        self.dataset.return_path = False
 
         for e_type, config in self.eval_types:
             for (
@@ -209,6 +195,7 @@ class EvaluationTrainer(ABC, object):
                         random_state=self.seed,
                         shuffle=True,
                     )
+                    # todo: here, maybe add the minority groups if needed, e.g. skin type
                     labels = self.dataset.meta_data.loc[
                         train_valid_range, self.dataset.LBL_COL
                     ].values
@@ -253,20 +240,7 @@ class EvaluationTrainer(ABC, object):
         saved_model_path: Union[Path, str, None] = None,
         detailed_evaluation: bool = False,
     ):
-        # W&B configurations
-        if e_type is EvalFineTuning and self.log_wandb:
-            _config = copy.deepcopy(self.config)
-            if split_name is not None:
-                _config["split_name"] = split_name
-            wandb.init(
-                config=_config,
-                project=self.wandb_project_name,
-            )
-            wandb_run_name = f"{self.experiment_name}-{wandb.run.name}"
-            if add_run_info is not None:
-                wandb_run_name += f"-{add_run_info}"
-            wandb.run.name = wandb_run_name
-            wandb.run.save()
+        self.configure_wandb(add_run_info, e_type, split_name)
         # get train / test set
         score_dict = e_type.evaluate(
             emb_space=self.emb_space,
@@ -331,9 +305,7 @@ class EvaluationTrainer(ABC, object):
                 y_true=case_targets,
                 y_pred=case_predictions,
             )
-        # finish the W&B run if needed
-        if e_type is EvalFineTuning and self.log_wandb:
-            wandb.finish()
+        self.finish_wandb(e_type)
         # save the results to the overall dataframe + save df
         self.df.loc[len(self.df)] = list(score_dict.values()) + [
             split_name,
@@ -341,6 +313,27 @@ class EvaluationTrainer(ABC, object):
             e_type.name(),
         ]
         self.df.to_csv(self.df_path, index=False)
+
+    def finish_wandb(self, e_type):
+        # finish the W&B run if needed
+        if e_type is EvalFineTuning and self.log_wandb:
+            wandb.finish()
+
+    def configure_wandb(self, add_run_info, e_type, split_name):
+        # W&B configurations
+        if e_type is EvalFineTuning and self.log_wandb:
+            _config = copy.deepcopy(self.config)
+            if split_name is not None:
+                _config["split_name"] = split_name
+            wandb.init(
+                config=_config,
+                project=self.wandb_project_name,
+            )
+            wandb_run_name = f"{self.experiment_name}-{wandb.run.name}"
+            if add_run_info is not None:
+                wandb_run_name += f"-{add_run_info}"
+            wandb.run.name = wandb_run_name
+            wandb.run.save()
 
     def print_eval_scores(self, y_true: np.ndarray, y_pred: np.ndarray):
         if len(self.dataset.classes) == 2:

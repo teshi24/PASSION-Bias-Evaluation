@@ -180,7 +180,6 @@ class BiasEvaluationTrainer(ABC, object):
             raise ValueError(
                 f"Dataframe already exists, remove to start: {self.df_path}"
             )
-        self.dataset.return_path = False
 
         for e_type, config in self.eval_types:
             for (

@@ -12,7 +12,6 @@ class ExperimentStandardSplit(EvaluationTrainer):
         self,
         dataset_name: DatasetName,
         config: dict,
-        ckp_path: Optional[str] = None,
         SSL_model: str = "imagenet",
         output_path: Union[Path, str] = "assets/evaluation",
         cache_path: Union[Path, str] = "assets/evaluation/cache",
@@ -26,7 +25,6 @@ class ExperimentStandardSplit(EvaluationTrainer):
         super().__init__(
             dataset_name=dataset_name,
             config=config,
-            ckp_path=ckp_path,
             SSL_model=SSL_model,
             output_path=output_path,
             cache_path=cache_path,
