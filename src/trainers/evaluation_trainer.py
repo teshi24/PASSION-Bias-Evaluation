@@ -136,20 +136,24 @@ class EvaluationTrainer(ABC, object):
                 cached_dict = pickle.load(file)
             self.emb_space = cached_dict["embedding_space"]
             self.labels = cached_dict["labels"]
+            # todo: figure out where this is reloaded / should be used
+            self.paths = cached_dict["paths"]
+            self.indices = cached_dict["indices"]
             del cached_dict
         else:
-            self.emb_space, self.labels, _, _ = embed_dataset(
+            self.emb_space, self.labels, self.paths, self.indices = embed_dataset(
                 torch_dataset=self.torch_dataset,
                 model=self.model,
                 n_layers=n_layers,
                 memmap=False,
                 normalize=False,
             )
-            del _
             # save the embeddings and issues to cache
             save_dict = {
                 "embedding_space": self.emb_space,
                 "labels": self.labels,
+                "paths": self.paths,
+                "indices": self.indices,
             }
             with open(cache_file, "wb") as handle:
                 pickle.dump(save_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)

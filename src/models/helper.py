@@ -21,6 +21,7 @@ def embed_dataset(
 ) -> Union[Tuple[ARR_TYPE, ARR_TYPE, ARR_TYPE, ARR_TYPE], Tuple[ARR_TYPE, ARR_TYPE]]:
     labels = []
     paths = []
+    indices = []
     batch_size = torch_dataset.batch_size
     iterator = tqdm(
         enumerate(torch_dataset),
@@ -66,6 +67,9 @@ def embed_dataset(
     del emb_dim, batch_dim, _batch
     # embed the dataset
     for i, batch_tup in iterator:
+        if len(batch_tup) == 4:
+            print(f"batch_tup: {batch_tup}")
+            batch, path, label, index = batch_tup
         if len(batch_tup) == 3:
             batch, path, label = batch_tup
         elif len(batch_tup) == 2:
@@ -99,6 +103,8 @@ def embed_dataset(
                     images.flush()
                 if path is not None:
                     paths += path
+                if index is not None:
+                    indices += index
     labels = torch.concat(labels).cpu()
     if return_only_embedding_and_labels:
         return emb_space, labels
@@ -106,7 +112,11 @@ def embed_dataset(
         paths = np.array(paths)
     else:
         paths = None
-    return emb_space, labels, images, paths
+    if len(indices) > 0:
+        indices = np.array(indices)
+    else:
+        indices = None
+    return emb_space, labels, images, paths, indices
 
 
 def create_memmap(memmap_path: Path, memmap_file_name: str, len_dataset: int, *dims):
