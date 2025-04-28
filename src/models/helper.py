@@ -120,19 +120,19 @@ def embed_dataset(
                 indices += index
     labels = torch.concat(labels).cpu()
 
-    logger.debug(f"paths: {paths}")
-    logger.debug(f"indices: {indices}")
-
     # if return_only_embedding_and_labels:
     #    return emb_space, labels
-    if len(paths) > 0:
-        paths = np.array(paths)
-    else:
-        paths = None
-    if len(indices) > 0:
-        indices = np.array(indices)
-    else:
-        indices = None
+    # if len(paths) > 0:
+    paths = np.array(paths)
+    # else:
+    #    paths = None
+    # if len(indices) > 0:
+    indices = np.array(indices)
+    # else:
+    #    indices = None
+
+    logger.debug(f"paths: {paths}")
+    logger.debug(f"indices: {indices}")
     return emb_space, labels, images, paths, indices
 
 
