@@ -143,7 +143,7 @@ class BiasEvaluationTrainer(ABC, object):
                 torch_dataset=self.torch_dataset,
                 model=self.model,
                 n_layers=n_layers,
-                memmap=False,
+                # memmap=False,
                 normalize=False,
             )
             # save the embeddings and issues to cache

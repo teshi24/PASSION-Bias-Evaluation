@@ -117,6 +117,7 @@ class EvaluationTrainer(ABC, object):
             dataset_path=Path(data_path),
             batch_size=config.get("batch_size", 128),
             transform=self.transform,
+            num_workers=config.get("num_workers", 4),
             **data_config[dataset_name.value],
         )
         # load the correct model to use as initialization
@@ -146,7 +147,7 @@ class EvaluationTrainer(ABC, object):
                 torch_dataset=self.torch_dataset,
                 model=self.model,
                 n_layers=n_layers,
-                memmap=False,
+                # memmap=False,
                 normalize=False,
             )
             # save the embeddings and issues to cache

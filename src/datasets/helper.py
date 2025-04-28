@@ -17,6 +17,7 @@ def get_dataset(
     dataset_path: Path = Path("../data/"),
     batch_size: int = 128,
     transform=None,
+    num_workers: int = 4,
     **kwargs,
 ) -> BaseDataset:
     if dataset_name == DatasetName.PASSION:
@@ -39,6 +40,7 @@ def get_dataset(
             if hasattr(dataset.__class__, "collate_fn")
             else None
         ),
+        num_workers=num_workers,
     )
     logger.debug(
         f"Loaded `{dataset_name.value}` which contains {len(torch_dataset)} "

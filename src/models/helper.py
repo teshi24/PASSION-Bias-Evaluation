@@ -14,8 +14,8 @@ def embed_dataset(
     model: Optional[torch.nn.Sequential],
     n_layers: int,
     normalize: bool = False,
-    memmap: bool = True,
-    memmap_path: Union[Path, str, None] = None,
+    # memmap: bool = True,
+    # memmap_path: Union[Path, str, None] = None,
     return_only_embedding_and_labels: bool = False,
     tqdm_desc: Optional[str] = None,
 ) -> Union[Tuple[ARR_TYPE, ARR_TYPE, ARR_TYPE, ARR_TYPE], Tuple[ARR_TYPE, ARR_TYPE]]:
@@ -45,68 +45,77 @@ def embed_dataset(
     else:
         emb_dim = model(_batch, n_layers=n_layers).squeeze().shape[0]
     # create the memmap's
-    if memmap:
-        memmap_path = create_memmap_path(memmap_path=memmap_path)
-        emb_space = create_memmap(
-            memmap_path,
-            "embedding_space.dat",
-            len(torch_dataset.dataset),
-            *(emb_dim,),
-        )
-        if not return_only_embedding_and_labels:
-            images = create_memmap(
-                memmap_path,
-                "images.dat",
-                len(torch_dataset.dataset),
-                *batch_dim,
-            )
-    else:
-        emb_space = np.zeros(shape=(len(torch_dataset.dataset), emb_dim))
-        if not return_only_embedding_and_labels:
-            images = np.zeros(shape=(len(torch_dataset.dataset), *batch_dim))
+    # if memmap:
+    #     memmap_path = create_memmap_path(memmap_path=memmap_path)
+    #     emb_space = create_memmap(
+    #         memmap_path,
+    #         "embedding_space.dat",
+    #         len(torch_dataset.dataset),
+    #         *(emb_dim,),
+    #     )
+    #     # if not return_only_embedding_and_labels:
+    #     images = create_memmap(
+    #         memmap_path,
+    #         "images.dat",
+    #         len(torch_dataset.dataset),
+    #         *batch_dim,
+    #     )
+    # else:
+    emb_space = np.zeros(shape=(len(torch_dataset.dataset), emb_dim))
+    # if not return_only_embedding_and_labels:
+    images = np.zeros(shape=(len(torch_dataset.dataset), *batch_dim))
+    # else done
+
     del emb_dim, batch_dim, _batch
     # embed the dataset
+
+    if (
+        type(model) is torch.jit._script.RecursiveScriptModule
+        or type(model) is torch.nn.Sequential
+    ):
+        model_has_layers = False
+    else:
+        model_has_layers = True
+
     for i, batch_tup in iterator:
         if len(batch_tup) == 4:
             batch, path, label, index = batch_tup
-        elif len(batch_tup) == 3:
-            batch, path, label = batch_tup
-        elif len(batch_tup) == 2:
-            batch, label = batch_tup
-            path = None
+        # elif len(batch_tup) == 3:
+        #    batch, path, label = batch_tup
+        # elif len(batch_tup) == 2:
+        #    batch, label = batch_tup
+        #    path = None
         else:
             raise ValueError(f"Unknown batch tuple: {batch_tup}")
 
         with torch.no_grad():
-            if model is not None:
+            if model:
                 batch = batch.to(model.device)
-            if (
-                type(model) is torch.jit._script.RecursiveScriptModule
-                or type(model) is torch.nn.Sequential
-            ):
-                emb = model(batch)
-            elif model is None:
-                emb = batch
+                if not model_has_layers:
+                    emb = model(batch)
+                else:
+                    emb = model(batch, n_layers=n_layers)
             else:
-                emb = model(batch, n_layers=n_layers)
+                emb = batch
             emb = emb.squeeze()
+
             if normalize:
                 emb = torch.nn.functional.normalize(emb, dim=-1, p=2)
             emb_space[batch_size * i : batch_size * (i + 1), :] = emb.cpu()
-            if type(emb_space) is np.memmap:
-                emb_space.flush()
+            # if memmap:
+            #    emb_space.flush()
             labels.append(label.cpu())
-            if not return_only_embedding_and_labels:
-                images[batch_size * i : batch_size * (i + 1), :] = batch.cpu()
-                if type(images) is np.memmap:
-                    images.flush()
-                if path is not None:
-                    paths += path
-                if index is not None:
-                    indices += index
+            # if not return_only_embedding_and_labels:
+            images[batch_size * i : batch_size * (i + 1), :] = batch.cpu()
+            # if memmap:
+            #    images.flush()
+            if path is not None:
+                paths += path
+            if index is not None:
+                indices += index
     labels = torch.concat(labels).cpu()
-    if return_only_embedding_and_labels:
-        return emb_space, labels
+    # if return_only_embedding_and_labels:
+    #    return emb_space, labels
     if len(paths) > 0:
         paths = np.array(paths)
     else:

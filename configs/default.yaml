@@ -8,6 +8,7 @@ dataset:
     passion:
         path: "data/PASSION"
         split_file: "PASSION_split.csv"
+    num_workers: 24
 
 # these keys define the eval types
 dummy_uniform:
