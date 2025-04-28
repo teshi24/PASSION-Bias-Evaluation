@@ -1,5 +1,5 @@
 # global configs for experiments
-batch_size: &batch_size 64
+batch_size: &batch_size 128
 seed: 42
 log_wandb: True
 

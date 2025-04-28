@@ -59,7 +59,8 @@ if __name__ == "__main__":
         trainer = ExperimentStandardSplit(
             dataset_name=DatasetName.PASSION,
             config=config,
-            SSL_model="imagenet",
+            # SSL_model="imagenet",
+            SSL_model="imagenet_tiny",
             append_to_df=args.append_results,
             log_wandb=log_wandb,
             add_info="conditions",
@@ -72,7 +73,8 @@ if __name__ == "__main__":
         trainer = ExperimentStandardSplit(
             dataset_name=DatasetName.PASSION,
             config=_config,
-            SSL_model="imagenet",
+            # SSL_model="imagenet",
+            SSL_model="imagenet_tiny",
             append_to_df=args.append_results,
             log_wandb=log_wandb,
             add_info="impetigo",
@@ -83,7 +85,8 @@ if __name__ == "__main__":
         trainer = ExperimentCenterGeneralization(
             dataset_name=DatasetName.PASSION,
             config=config,
-            SSL_model="imagenet",
+            # SSL_model="imagenet",
+            SSL_model="imagenet_tiny",
             append_to_df=args.append_results,
             log_wandb=log_wandb,
         )
@@ -93,7 +96,8 @@ if __name__ == "__main__":
         trainer = ExperimentAgeGroupGeneralization(
             dataset_name=DatasetName.PASSION,
             config=config,
-            SSL_model="imagenet",
+            # SSL_model="imagenet",
+            SSL_model="imagenet_tiny",
             append_to_df=args.append_results,
             log_wandb=log_wandb,
         )
