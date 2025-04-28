@@ -288,7 +288,7 @@ class BiasEvaluationTrainer(ABC, object):
 
         if detailed_evaluation:
             print("°" * 20 + " labels " + "°" * 20)
-            print(self.labels)
+            print(self.dataset.meta_data)
             # Detailed evaluation
             self.print_overall_result(e_type, score_dict)
             # Detailed evaluation per demographic
