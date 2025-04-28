@@ -287,6 +287,8 @@ class BiasEvaluationTrainer(ABC, object):
             score_dict = self.load_and_find_row(e_type, "Test", "finetuning")
 
         if detailed_evaluation:
+            print("°" * 20 + " labels " + "°" * 20)
+            print(self.labels)
             # Detailed evaluation
             self.print_overall_result(e_type, score_dict)
             # Detailed evaluation per demographic
