@@ -156,6 +156,7 @@ class EvaluationTrainer(ABC, object):
                 # memmap=False,
                 normalize=False,
             )
+            # todo: what with those imgs
             # save the embeddings and issues to cache
             save_dict = {
                 "embedding_space": self.emb_space,
