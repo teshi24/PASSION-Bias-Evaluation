@@ -73,6 +73,7 @@ class GenericImageDataset(BaseDataset):
         # global configs
         self.classes = list(lbl_mapping)
         self.n_classes = len(self.classes)
+        self.train_data_only = False
 
     def __len__(self):
         return len(self.meta_data)
