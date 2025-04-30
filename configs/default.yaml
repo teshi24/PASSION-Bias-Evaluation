@@ -2,6 +2,7 @@
 batch_size: &batch_size 64
 seed: 42
 log_wandb: True
+input_size: &input_size 128 # was 224
 
 # data paths
 dataset:
@@ -30,6 +31,7 @@ fine_tuning:
     # method specific parameters
     train_epochs: 100
     batch_size: *batch_size
+    input_size: *input_size
     learning_rate: 1.0e-05
     find_optimal_lr: True
     use_lr_scheduler: True

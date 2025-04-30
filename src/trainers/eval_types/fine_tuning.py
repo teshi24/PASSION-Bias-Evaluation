@@ -29,27 +29,32 @@ from src.utils.utils import (
 
 
 class EvalFineTuning(BaseEvalType):
-    train_transform = transforms.Compose(
-        [
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(90),
-            # Experiments showed color jitter hinders performance,
-            # but check again if problems with models and datasets arise
-            # transforms.ColorJitter(brightness=0.3, contrast=0.3, hue=0.3),
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ]
-    )
-    val_transform = transforms.Compose(
-        [
-            transforms.Resize(256, interpolation=InterpolationMode.BICUBIC),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ]
-    )
+    @classmethod
+    def train_transform(cls) -> function:
+        return transforms.Compose(
+            [
+                transforms.RandomResizedCrop(cls.input_size),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(90),
+                # Experiments showed color jitter hinders performance,
+                # but check again if problems with models and datasets arise
+                # transforms.ColorJitter(brightness=0.3, contrast=0.3, hue=0.3),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
+
+    @classmethod
+    def val_transform(cls) -> function:
+        return transforms.Compose(
+            [
+                transforms.Resize(256, interpolation=InterpolationMode.BICUBIC),
+                transforms.CenterCrop(cls.input_size),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
 
     @staticmethod
     def name() -> str:
@@ -65,6 +70,7 @@ class EvalFineTuning(BaseEvalType):
         model_out_dim: int,
         learning_rate: float,
         batch_size: int,
+        input_size: int,
         train_epochs: int,
         warmup_epochs: int,
         early_stopping_patience: int,
@@ -78,6 +84,7 @@ class EvalFineTuning(BaseEvalType):
         debug: bool = False,
         **kwargs,
     ) -> dict:
+        cls.input_size = input_size
         classifier, model = cls.create_classifier(
             dataset, dropout_in_head, model, model_out_dim, use_bn_in_head
         )
@@ -383,7 +390,7 @@ class EvalFineTuning(BaseEvalType):
         set_requires_grad(classifier, True)
         if debug and model is not None:
             try:
-                summary(classifier, input_size=(1, 3, 224, 224))
+                summary(classifier, input_size=(1, 3, cls.input_size, cls.input_size))
             except RuntimeError:
                 print("Summary can not be displayed for a Huggingface model.")
                 print(
