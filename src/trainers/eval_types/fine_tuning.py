@@ -47,7 +47,7 @@ class EvalFineTuning(BaseEvalType):
 
     @classmethod
     def val_transform(cls):
-        resize_size = 256 if self.input_size == 224 else 160
+        resize_size = 256 if cls.input_size == 224 else 160
         return transforms.Compose(
             [
                 transforms.Resize(resize_size, interpolation=InterpolationMode.BICUBIC),
