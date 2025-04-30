@@ -446,7 +446,7 @@ class EvalFineTuning(BaseEvalType):
         num_workers: int,
     ):
         train_dataset = copy.deepcopy(dataset)
-        train_dataset.transform = cls.train_transform
+        train_dataset.transform = cls.train_transform()
         train_dataset.train_data_only = True
         train_loader = DataLoader(
             train_dataset,
@@ -459,7 +459,7 @@ class EvalFineTuning(BaseEvalType):
         del train_dataset
 
         eval_dataset = copy.deepcopy(dataset)
-        eval_dataset.transform = cls.val_transform
+        eval_dataset.transform = cls.val_transform()
         eval_loader = DataLoader(
             eval_dataset,
             batch_size=batch_size,
