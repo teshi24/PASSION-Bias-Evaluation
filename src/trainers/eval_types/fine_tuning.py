@@ -451,6 +451,7 @@ class EvalFineTuning(BaseEvalType):
 
         eval_dataset = copy.deepcopy(dataset)
         eval_dataset.transform = cls.val_transform
+        eval_dataset.training = False
         eval_loader = DataLoader(
             eval_dataset,
             batch_size=batch_size,
