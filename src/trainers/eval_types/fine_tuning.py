@@ -9,7 +9,6 @@ import torch
 import torchmetrics
 import wandb
 from loguru import logger
-from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch_lr_finder import LRFinder
@@ -183,7 +182,6 @@ class EvalFineTuning(BaseEvalType):
                 "scores": [],
             },
         }
-        scaler = GradScaler()  # for AMP
         l_loss_val = []
         best_val_score = 0
         best_model_wts = copy.deepcopy(classifier.state_dict())
@@ -202,19 +200,13 @@ class EvalFineTuning(BaseEvalType):
 
                 optimizer.zero_grad()
 
-                with autocast():  # Mixed precision forward + loss
-                    pred = classifier(img)
-                    loss = criterion(pred, target)
+                pred = classifier(img)
+                loss = criterion(pred, target)
 
-                scaler.scale(loss).backward()  # scale loss
-                scaler.step(optimizer)  # unscale + step
-                scaler.update()  # update scale
+                loss.backward()
+                optimizer.step()
                 if use_lr_scheduler:
                     scheduler.step()
-
-                # Update metrics (in float32 to avoid dtype issues)
-                loss_metric_train.update(loss.detach().float())
-                f1_score_train.update(pred.float(), target)
 
                 # W&B logging if needed
                 # todo: set back to ig log_wandb:
