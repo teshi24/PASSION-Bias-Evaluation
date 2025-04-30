@@ -185,12 +185,22 @@ class EvalFineTuning(BaseEvalType):
         l_loss_val = []
         best_val_score = 0
         best_model_wts = copy.deepcopy(classifier.state_dict())
+
+        # start with frozen backbone and only let the classifier be trained
+        set_requires_grad(classifier, True)
+        if hasattr(classifier, "backbone"):
+            set_requires_grad(classifier.backbone, False)
+        fully_unfreezed = False
+
         for epoch in tqdm(
             range(epoch, train_epochs),
             total=train_epochs,
             desc="Model Training",
         ):
-            cls.freeze_as_needed(classifier, epoch, warmup_epochs)
+            if not fully_unfreezed and epoch >= warmup_epochs:
+                # make sure the classifier and backbone get trained
+                set_requires_grad(classifier, True)
+                fully_unfreezed = True
 
             # training
             classifier.train()
@@ -330,17 +340,6 @@ class EvalFineTuning(BaseEvalType):
                 log_dict[f"best_eval_{score_name}"] = _score_dict["scores"][best_epoch]
             wandb.log(log_dict)
         return best_epoch
-
-    @classmethod
-    def freeze_as_needed(cls, classifier, epoch, warmup_epochs):
-        if epoch >= warmup_epochs:
-            # make sure the classifier and backbone get trained
-            set_requires_grad(classifier, True)
-        else:
-            # freeze the backbone and let only the classifier be trained
-            set_requires_grad(classifier, True)
-            if hasattr(classifier, "backbone"):
-                set_requires_grad(classifier.backbone, False)
 
     @classmethod
     def configure_optimizer(
