@@ -237,15 +237,17 @@ class EvalFineTuning(BaseEvalType):
 
             # Evaluation
             classifier.eval()
-            for img, _, target, _ in eval_loader:
-                img = img.to(device, non_blocking=True)
-                target = target.to(device, non_blocking=True)
-                with torch.no_grad():
+            with torch.no_grad():
+                for img, _, target, _ in eval_loader:
+                    img = img.to(device, non_blocking=True)
+                    target = target.to(device, non_blocking=True)
+
                     pred = classifier(img)
                     loss = criterion(pred, target)
-                loss_metric_val.update(loss)
-                for _score_dict in eval_scores_dict.values():
-                    _score_dict["metric"].update(pred, target)
+
+                    loss_metric_val.update(loss)
+                    for _score_dict in eval_scores_dict.values():
+                        _score_dict["metric"].update(pred, target)
             l_loss_val.append(loss_metric_val.compute())
             for _score_dict in eval_scores_dict.values():
                 _score_dict["scores"].append(_score_dict["metric"].compute())
