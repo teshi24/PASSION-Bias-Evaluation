@@ -272,23 +272,21 @@ class EvalFineTuning(BaseEvalType):
 
         # create eval predictions for saving
         img_names, targets, predictions, indices = [], [], [], []
-        targets.to(device)
-        predictions.to(device)
         classifier.eval()
         for img, img_name, target, index in eval_loader:
             img = img.to(device)
             target = target.to(device)
             with torch.no_grad():
                 pred = classifier(img)
-            targets.append(target)
-            predictions.append(pred)
+            targets.append(target.cpu())
+            predictions.append(pred.cpu())
 
             img_names.append(img_name)
             indices.append(index)
-        img_names = torch.cat(img_names).numpy()
+        img_names = torch.concat(img_names).numpy()
         targets = torch.concat(targets).cpu().numpy()
         predictions = torch.concat(predictions).argmax(dim=-1).cpu().numpy()
-        indices = torch.cat(indices).numpy()
+        indices = torch.concat(indices).numpy()
         results = {
             "score": float(eval_scores_dict["f1"]["scores"][best_epoch] * 100),
             "filenames": img_names,
