@@ -209,7 +209,8 @@ class EvalFineTuning(BaseEvalType):
                     scheduler.step()
 
                 # W&B logging if needed
-                if log_wandb:
+                # todo: set back to ig log_wandb:
+                if log_wandb and (step % 20 == 0):
                     log_dict = {
                         "train_loss": loss.item(),
                         "train_f1": f1_score_train(pred, target),
