@@ -41,6 +41,7 @@ def get_dataset(
             else None
         ),
         num_workers=num_workers,
+        pin_memory=True,
     )
     logger.debug(
         f"Loaded `{dataset_name.value}` which contains {len(torch_dataset)} "

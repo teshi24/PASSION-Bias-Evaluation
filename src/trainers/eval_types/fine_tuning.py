@@ -205,8 +205,8 @@ class EvalFineTuning(BaseEvalType):
             # training
             classifier.train()
             for img, target in train_loader:
-                img = img.to(device)
-                target = target.to(device)
+                img = img.to(device, non_blocking=True)
+                target = target.to(device, non_blocking=True)
 
                 optimizer.zero_grad()
 
@@ -238,8 +238,8 @@ class EvalFineTuning(BaseEvalType):
             # Evaluation
             classifier.eval()
             for img, _, target, _ in eval_loader:
-                img = img.to(device)
-                target = target.to(device)
+                img = img.to(device, non_blocking=True)
+                target = target.to(device, non_blocking=True)
                 with torch.no_grad():
                     pred = classifier(img)
                     loss = criterion(pred, target)
@@ -285,8 +285,8 @@ class EvalFineTuning(BaseEvalType):
         img_names, targets, predictions, indices = [], [], [], []
         classifier.eval()
         for img, img_name, target, index in eval_loader:
-            img = img.to(device)
-            target = target.to(device)
+            img = img.to(device, non_blocking=True)
+            target = target.to(device, non_blocking=True)
             with torch.no_grad():
                 pred = classifier(img)
             targets.append(target.cpu())
@@ -453,6 +453,7 @@ class EvalFineTuning(BaseEvalType):
             num_workers=num_workers,
             drop_last=True,
             shuffle=False,
+            pin_memory=True,
         )
         del train_dataset
 
@@ -465,6 +466,7 @@ class EvalFineTuning(BaseEvalType):
             num_workers=num_workers,
             drop_last=False,
             shuffle=False,
+            pin_memory=True,
         )
         del eval_dataset
         return train_loader, eval_loader
