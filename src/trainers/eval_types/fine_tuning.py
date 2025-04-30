@@ -186,7 +186,7 @@ class EvalFineTuning(BaseEvalType):
 
             # training
             classifier.train()
-            for img, _, target in train_loader:
+            for img, target in train_loader:
                 img = img.to(device)
                 target = target.to(device)
 
