@@ -30,7 +30,7 @@ from src.utils.utils import (
 
 class EvalFineTuning(BaseEvalType):
     @classmethod
-    def train_transform(cls) -> function:
+    def train_transform(cls):
         return transforms.Compose(
             [
                 transforms.RandomResizedCrop(cls.input_size),
@@ -46,7 +46,7 @@ class EvalFineTuning(BaseEvalType):
         )
 
     @classmethod
-    def val_transform(cls) -> function:
+    def val_transform(cls):
         resize_size = 256 if self.input_size == 224 else 160
         return transforms.Compose(
             [
