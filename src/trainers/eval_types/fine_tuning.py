@@ -132,7 +132,7 @@ class EvalFineTuning(BaseEvalType):
 
         # todo nadja: fix this checkpoint loading
         # load the model from checkpoint if provided
-        to_restore = {"epoch": 100}
+        to_restore = {"epoch": 0}
         # TODO: fix this here
         if False:
             if saved_model_path is not None:
