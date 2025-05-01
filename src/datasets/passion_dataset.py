@@ -145,7 +145,7 @@ class PASSIONDataset(GenericImageDataset):
         elif self.val_transform and not self.training:
             image = self.val_transform(image)
 
-        if index % 250 == 0:
+        if index % 1000 == 0:
             logger.debug(f"diagnosis: {int(diagnosis)}")
             logger.debug(f"img_name: {img_name}")
             logger.debug(f"index: {index}")
