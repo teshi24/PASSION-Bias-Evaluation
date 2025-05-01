@@ -6,6 +6,7 @@ from typing import Optional, Sequence, Union
 import numpy as np
 import pandas as pd
 import torch
+from loguru import logger
 from PIL import Image, ImageFile
 
 from src.datasets.generic_image_dataset import GenericImageDataset
@@ -133,6 +134,8 @@ class PASSIONDataset(GenericImageDataset):
         if self.return_embedding:
             embedding = self.meta_data.loc[self.meta_data.index[index], "embedding"]
             embedding = torch.Tensor(embedding)
+
+            logger.debug(f"returned embedding")
             return embedding, img_name, int(diagnosis)
 
         image = Image.open(img_name)
@@ -141,6 +144,10 @@ class PASSIONDataset(GenericImageDataset):
             image = self.transform(image)
         elif self.val_transform and not self.training:
             image = self.val_transform(image)
+
+        logger.debug(f"diagnosis: {int(diagnosis)}")
+        logger.debug(f"img_name: {img_name}")
+        logger.debug(f"index: {index}")
 
         if self.train_data_only:
             return image, int(diagnosis)
