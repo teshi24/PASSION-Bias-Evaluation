@@ -130,8 +130,9 @@ class EvalFineTuning(BaseEvalType):
                 eta_min=0,
             )
 
+        # todo nadja: fix this checkpoint loading
         # load the model from checkpoint if provided
-        to_restore = {"epoch": 0}
+        to_restore = {"epoch": 100}
         # TODO: fix this here
         if False:
             if saved_model_path is not None:
@@ -288,7 +289,7 @@ class EvalFineTuning(BaseEvalType):
         classifier.eval()
         for img, img_name, target, index in eval_loader:
             logger.debug(f"img_name: {img_name}")
-            logger.debug(f"indices: {indices}")
+            logger.debug(f"index: {index}")
             img = img.to(device, non_blocking=True)
             target = target.to(device, non_blocking=True)
             with torch.no_grad():
@@ -298,7 +299,10 @@ class EvalFineTuning(BaseEvalType):
 
             img_names.append(img_name)
             indices.append(index)
-        img_names = torch.concat(img_names).numpy()
+
+        logger.debug(f"img_names: {img_names}")
+        logger.debug(f"indices: {indices}")
+        img_names = np.hstack(img_names)
         targets = torch.concat(targets).cpu().numpy()
         predictions = torch.concat(predictions).argmax(dim=-1).cpu().numpy()
         indices = torch.concat(indices).numpy()
