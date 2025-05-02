@@ -66,7 +66,7 @@ class GenericImageDataset(BaseDataset):
             lambda x: Path(x).parents[0].name
         )
         self.meta_data.reset_index(drop=True, inplace=True)
-        int_lbl, lbl_mapping = pd.factorize(self.meta_data[self.LBL_COL])
+        int_lbl, lbl_mapping = pd.factorize(self.meta_data[self.LBL_COL], sort=True)
         self.LBL_COL = f"lbl_{self.LBL_COL}"
         self.meta_data[self.LBL_COL] = int_lbl
 
