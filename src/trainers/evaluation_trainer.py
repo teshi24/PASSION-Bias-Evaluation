@@ -207,7 +207,10 @@ class EvaluationTrainer(ABC, object):
                 test_range,
                 split_name,
             ) in self.split_dataframe_iterator():
-                if config.get("n_folds", None) is not None:
+                if (
+                    config.get("train_from_scratch", True)
+                    and config.get("n_folds", None) is not None
+                ):
                     k_fold = StratifiedGroupKFold(
                         n_splits=config["n_folds"],
                         random_state=self.seed,
