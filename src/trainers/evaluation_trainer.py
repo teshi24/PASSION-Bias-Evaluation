@@ -366,31 +366,31 @@ class EvaluationTrainer(ABC, object):
             else:
                 return np.nan
 
-        # Parse the image_paths and arrays
-        def parse_image_paths(s):
-            s = s.replace("\n", " ").replace("'", '"')
-            s = s.replace("[", "").replace("]", "")
-            return s.split()
-
-        def parse_numpy_array(s):
-            return np.fromstring(s.strip("[]").replace("\n", " "), sep=" ", dtype=int)
-
-        df_results["FileNames"] = df_results["FileNames"].apply(parse_image_paths)
-        df_results["Indices"] = df_results["Indices"].apply(parse_numpy_array)
-        df_results["EvalTargets"] = df_results["EvalTargets"].apply(parse_numpy_array)
-        df_results["EvalPredictions"] = df_results["EvalPredictions"].apply(
-            parse_numpy_array
-        )
+        # # Parse the image_paths and arrays
+        # def parse_image_paths(s):
+        #     s = s.replace("\n", " ").replace("'", '"')
+        #     s = s.replace("[", "").replace("]", "")
+        #     return s.split()
+        #
+        # def parse_numpy_array(s):
+        #     return np.fromstring(s.strip("[]").replace("\n", " "), sep=" ", dtype=int)
+        #
+        # df_results["filenames"] = df_results["filenames"].apply(parse_image_paths)
+        # df_results["indices"] = df_results["indices"].apply(parse_numpy_array)
+        # df_results["targets"] = df_results["targets"].apply(parse_numpy_array)
+        # df_results["predictions"] = df_results["predictions"].apply(
+        #     parse_numpy_array
+        # )
 
         # Flatten the DataFrame into one row per image path
         rows = []
         unique_subject_ids = []
         for _, row in df_results.iterrows():
             for img_name, idx, lbl, pred in zip(
-                row["FileNames"],
-                row["Indices"],
-                row["EvalTargets"],
-                row["EvalPredictions"],
+                row["filenames"],
+                row["indices"],
+                row["targets"],
+                row["predictions"],
             ):
                 subject_id = extract_subject_id(img_name)
                 labels = df_labels[df_labels["subject_id"] == subject_id].iloc[0]
