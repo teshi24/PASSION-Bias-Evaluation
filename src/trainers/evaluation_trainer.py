@@ -1,5 +1,6 @@
 import copy
 import pickle
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterator, Optional, Tuple, Union
@@ -12,6 +13,7 @@ from loguru import logger
 from sklearn.metrics import (
     balanced_accuracy_score,
     classification_report,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
@@ -271,6 +273,13 @@ class EvaluationTrainer(ABC, object):
             # rest of the method specific parameters set with kwargs
             **config,
         )
+        # save the results to the overall dataframe + save df
+        self.df.loc[len(self.df)] = list(score_dict.values()) + [
+            split_name,
+            add_run_info,
+            e_type.name(),
+        ]
+        self.df.to_csv(self.df_path, index=False)
         if detailed_evaluation:
             # Detailed evaluation
             print("*" * 20 + f" {e_type.name()} " + "*" * 20)
@@ -327,12 +336,12 @@ class EvaluationTrainer(ABC, object):
 
         self.finish_wandb(e_type)
         # save the results to the overall dataframe + save df
-        self.df.loc[len(self.df)] = list(score_dict.values()) + [
-            split_name,
-            add_run_info,
-            e_type.name(),
-        ]
-        self.df.to_csv(self.df_path, index=False)
+        # self.df.loc[len(self.df)] = list(score_dict.values()) + [
+        #     split_name,
+        #     add_run_info,
+        #     e_type.name(),
+        # ]
+        # self.df.to_csv(self.df_path, index=False)
 
     def finish_wandb(self, e_type):
         # finish the W&B run if needed
@@ -445,7 +454,7 @@ class EvaluationTrainer(ABC, object):
                     y_pred=y_pred,
                     labels=labels,
                     target_names=target_names,
-                    # zero_division=0
+                    zero_division=0,
                 )
             )
             b_acc = balanced_accuracy_score(
@@ -482,6 +491,9 @@ class EvaluationTrainer(ABC, object):
                     group_values = (group_values,)  # Make it always a tuple
 
                 if _df.shape[0] == 0:
+                    print(
+                        f"no support: group_by: {group_by}, group_values: {group_values}"
+                    )
                     continue  # Skip empty groups
 
                 # Build header text
@@ -508,11 +520,22 @@ class EvaluationTrainer(ABC, object):
             print_grouped_result(data, group_by="fitzpatrick")
             print_grouped_result(data, group_by="sex")
 
-            print("=" * 20 + " grouped output per case using subgroup " + "~=" * 20)
+            print("=" * 20 + " grouped output per case using subgroup " + "=" * 20)
+            print("dataset")
+            bins = list(range(0, 100, 5))
+            labels = [f"{i}-{i + 4}" for i in bins[:-1]]
+            data["ageGroup"] = pd.cut(
+                data["age"], bins=bins, labels=labels, right=False
+            )
+            print(data)
+
             print_subgroup_results(data, group_by=["fitzpatrick"])
             print_subgroup_results(data, group_by=["sex"])
-            # todo: add bins for age
+            print_subgroup_results(data, group_by=["ageGroup"])
             print_subgroup_results(data, group_by=["fitzpatrick", "sex"])
+            print_subgroup_results(data, group_by=["fitzpatrick", "ageGroup"])
+            print_subgroup_results(data, group_by=["sex", "ageGroup"])
+            print_subgroup_results(data, group_by=["fitzpatrick", "sex", "ageGroup"])
 
         do_calculations(df_calc_in)
 
