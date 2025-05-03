@@ -321,8 +321,9 @@ class EvaluationTrainer(ABC, object):
                 y_pred=case_predictions,
             )
 
-            print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
-            self.print_eval_scores_bias(score_dict)
+            if e_type is EvalFineTuning:
+                print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
+                self.print_eval_scores_bias(score_dict)
 
         self.finish_wandb(e_type)
         # save the results to the overall dataframe + save df
