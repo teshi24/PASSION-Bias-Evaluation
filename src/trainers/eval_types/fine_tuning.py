@@ -83,6 +83,7 @@ class EvalFineTuning(BaseEvalType):
         use_lr_scheduler: bool = False,
         log_wandb: bool = False,
         debug: bool = False,
+        train_from_scratch: bool = True,
         **kwargs,
     ) -> dict:
         cls.input_size = input_size
@@ -100,48 +101,50 @@ class EvalFineTuning(BaseEvalType):
         device = cls.get_device(model)
         classifier.to(device)
 
-        cls.configure_classifier_base(classifier, debug, log_wandb, model, train_loader)
-        # loss function, optimizer, scores
-        criterion = torch.nn.CrossEntropyLoss(
-            weight=train_loader.dataset.get_class_weights(),
-        )
-        criterion = criterion.to(device)
-        optimizer = cls.configure_optimizer(
-            classifier,
-            criterion,
-            device,
-            find_optimal_lr,
-            learning_rate,
-            log_wandb,
-            train_loader,
-        )
-
-        # we use early stopping to speed up the training
-        early_stopping = EarlyStopping(
-            patience=early_stopping_patience,
-            log_messages=debug,
-        )
-
-        if use_lr_scheduler:
-            # define the learning rate scheduler
-            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer=optimizer,
-                T_max=train_epochs,
-                eta_min=0,
+        if train_from_scratch is True:
+            cls.configure_classifier_base(
+                classifier, debug, log_wandb, model, train_loader
+            )
+            # loss function, optimizer, scores
+            criterion = torch.nn.CrossEntropyLoss(
+                weight=train_loader.dataset.get_class_weights(),
+            )
+            criterion = criterion.to(device)
+            optimizer = cls.configure_optimizer(
+                classifier,
+                criterion,
+                device,
+                find_optimal_lr,
+                learning_rate,
+                log_wandb,
+                train_loader,
             )
 
-        # todo nadja: fix this checkpoint loading
+            # we use early stopping to speed up the training
+            early_stopping = EarlyStopping(
+                patience=early_stopping_patience,
+                log_messages=debug,
+            )
+
+            if use_lr_scheduler:
+                # define the learning rate scheduler
+                scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                    optimizer=optimizer,
+                    T_max=train_epochs,
+                    eta_min=0,
+                )
+
         # load the model from checkpoint if provided
         to_restore = {"epoch": 0}
         # TODO: fix this here
-        if False:
+        if train_from_scratch is False:
             if saved_model_path is not None:
                 restart_from_checkpoint(
                     Path(saved_model_path) / "checkpoints" / "model_best.pth",
-                    run_variables=to_restore,
                     classifier=classifier,
-                    optimizer=optimizer,
-                    loss=criterion,
+                    # run_variables=to_restore,
+                    # optimizer=optimizer,
+                    # loss=criterion,
                 )
         start_epoch = to_restore["epoch"]
 
@@ -163,126 +166,127 @@ class EvalFineTuning(BaseEvalType):
             num_classes=metric_param["num_classes"],
         ).to(device)
 
-        # start training
-        epoch, step = start_epoch, 0
-        eval_scores_dict = {
-            "f1": {
-                "metric": f1_score_val,
-                "scores": [],
-            },
-            "precision": {
-                "metric": precision_val,
-                "scores": [],
-            },
-            "recall": {
-                "metric": recall_val,
-                "scores": [],
-            },
-            "auroc": {
-                "metric": auroc_val,
-                "scores": [],
-            },
-        }
-        l_loss_val = []
-        best_val_score = 0
-        best_model_wts = copy.deepcopy(classifier.state_dict())
+        if train_from_scratch is True:
+            # start training
+            epoch, step = start_epoch, 0
+            eval_scores_dict = {
+                "f1": {
+                    "metric": f1_score_val,
+                    "scores": [],
+                },
+                "precision": {
+                    "metric": precision_val,
+                    "scores": [],
+                },
+                "recall": {
+                    "metric": recall_val,
+                    "scores": [],
+                },
+                "auroc": {
+                    "metric": auroc_val,
+                    "scores": [],
+                },
+            }
+            l_loss_val = []
+            best_val_score = 0
+            best_model_wts = copy.deepcopy(classifier.state_dict())
 
-        # start with frozen backbone and only let the classifier be trained
-        set_requires_grad(classifier, True)
-        if hasattr(classifier, "backbone"):
-            set_requires_grad(classifier.backbone, False)
-        fully_unfreezed = False
+            # start with frozen backbone and only let the classifier be trained
+            set_requires_grad(classifier, True)
+            if hasattr(classifier, "backbone"):
+                set_requires_grad(classifier.backbone, False)
+            fully_unfreezed = False
 
-        for epoch in tqdm(
-            range(epoch, train_epochs),
-            total=train_epochs,
-            desc="Model Training",
-        ):
-            if not fully_unfreezed and epoch >= warmup_epochs:
-                # make sure the classifier and backbone get trained
-                set_requires_grad(classifier, True)
-                fully_unfreezed = True
+            for epoch in tqdm(
+                range(epoch, train_epochs),
+                total=train_epochs,
+                desc="Model Training",
+            ):
+                if not fully_unfreezed and epoch >= warmup_epochs:
+                    # make sure the classifier and backbone get trained
+                    set_requires_grad(classifier, True)
+                    fully_unfreezed = True
 
-            # training
-            classifier.train()
-            for img, target in train_loader:
-                img = img.to(device, non_blocking=True)
-                target = target.to(device, non_blocking=True)
-
-                optimizer.zero_grad()
-
-                pred = classifier(img)
-                loss = criterion(pred, target)
-
-                loss.backward()
-                optimizer.step()
-                if use_lr_scheduler:
-                    scheduler.step()
-
-                # W&B logging if needed
-                # todo: set back to ig log_wandb:
-                if log_wandb and (step % 20 == 0):
-                    log_dict = {
-                        "train_loss": loss.item(),
-                        "train_f1": f1_score_train(pred, target),
-                        "learning_rate": optimizer.param_groups[0]["lr"],
-                        "weight_decay": optimizer.param_groups[0]["weight_decay"],
-                        "epoch": epoch,
-                        "step": step,
-                    }
-                    wandb.log(log_dict)
-                # add to overall metrics
-                loss_metric_train.update(loss.detach())
-                f1_score_train.update(pred, target)
-                step += 1
-
-            # Evaluation
-            classifier.eval()
-            with torch.no_grad():
-                for img, _, target, _ in eval_loader:
+                # training
+                classifier.train()
+                for img, target in train_loader:
                     img = img.to(device, non_blocking=True)
                     target = target.to(device, non_blocking=True)
+
+                    optimizer.zero_grad()
 
                     pred = classifier(img)
                     loss = criterion(pred, target)
 
-                    loss_metric_val.update(loss)
-                    for _score_dict in eval_scores_dict.values():
-                        _score_dict["metric"].update(pred, target)
-            l_loss_val.append(loss_metric_val.compute())
-            for _score_dict in eval_scores_dict.values():
-                _score_dict["scores"].append(_score_dict["metric"].compute())
-            # check if we have new best model
-            if eval_scores_dict["f1"]["scores"][-1] > best_val_score:
-                best_val_score = eval_scores_dict["f1"]["scores"][-1]
-                best_model_wts = copy.deepcopy(classifier.state_dict())
-            # check early stopping
-            early_stopping(l_loss_val[-1])
-            if early_stopping.early_stop:
-                if debug:
-                    print("EarlyStopping, evaluation did not decrease.")
-                break
-            # W&B logging if needed
-            if log_wandb:
-                log_dict = {
-                    "eval_loss": l_loss_val[-1],
-                    "epoch": epoch,
-                    "step": step,
-                }
-                for score_name, _score_dict in eval_scores_dict.items():
-                    log_dict[f"eval_{score_name}"] = _score_dict["scores"][-1]
-                wandb.log(log_dict)
+                    loss.backward()
+                    optimizer.step()
+                    if use_lr_scheduler:
+                        scheduler.step()
 
-        # get the best epoch in terms of F1 score
-        wandb.unwatch()
-        best_epoch = cls.get_best_epoch(
-            epoch, eval_scores_dict, l_loss_val, log_wandb, step
-        )
-        classifier.load_state_dict(best_model_wts)
-        if saved_model_path is not None:
-            cls.save_model_checkpoint(
-                classifier, criterion, epoch, optimizer, saved_model_path
+                    # W&B logging if needed
+                    # todo: set back to ig log_wandb:
+                    if log_wandb and (step % 20 == 0):
+                        log_dict = {
+                            "train_loss": loss.item(),
+                            "train_f1": f1_score_train(pred, target),
+                            "learning_rate": optimizer.param_groups[0]["lr"],
+                            "weight_decay": optimizer.param_groups[0]["weight_decay"],
+                            "epoch": epoch,
+                            "step": step,
+                        }
+                        wandb.log(log_dict)
+                    # add to overall metrics
+                    loss_metric_train.update(loss.detach())
+                    f1_score_train.update(pred, target)
+                    step += 1
+
+                # Evaluation
+                classifier.eval()
+                with torch.no_grad():
+                    for img, _, target, _ in eval_loader:
+                        img = img.to(device, non_blocking=True)
+                        target = target.to(device, non_blocking=True)
+
+                        pred = classifier(img)
+                        loss = criterion(pred, target)
+
+                        loss_metric_val.update(loss)
+                        for _score_dict in eval_scores_dict.values():
+                            _score_dict["metric"].update(pred, target)
+                l_loss_val.append(loss_metric_val.compute())
+                for _score_dict in eval_scores_dict.values():
+                    _score_dict["scores"].append(_score_dict["metric"].compute())
+                # check if we have new best model
+                if eval_scores_dict["f1"]["scores"][-1] > best_val_score:
+                    best_val_score = eval_scores_dict["f1"]["scores"][-1]
+                    best_model_wts = copy.deepcopy(classifier.state_dict())
+                # check early stopping
+                early_stopping(l_loss_val[-1])
+                if early_stopping.early_stop:
+                    if debug:
+                        print("EarlyStopping, evaluation did not decrease.")
+                    break
+                # W&B logging if needed
+                if log_wandb:
+                    log_dict = {
+                        "eval_loss": l_loss_val[-1],
+                        "epoch": epoch,
+                        "step": step,
+                    }
+                    for score_name, _score_dict in eval_scores_dict.items():
+                        log_dict[f"eval_{score_name}"] = _score_dict["scores"][-1]
+                    wandb.log(log_dict)
+
+            # get the best epoch in terms of F1 score
+            wandb.unwatch()
+            best_epoch = cls.get_best_epoch(
+                epoch, eval_scores_dict, l_loss_val, log_wandb, step
             )
+            classifier.load_state_dict(best_model_wts)
+            if saved_model_path is not None:
+                cls.save_model_checkpoint(
+                    classifier, criterion, epoch, optimizer, saved_model_path
+                )
 
         # create eval predictions for saving
         img_names, targets, predictions, indices = [], [], [], []

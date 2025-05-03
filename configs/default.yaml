@@ -44,6 +44,7 @@ fine_tuning:
     # head parameters
     use_bn_in_head: True
     dropout_in_head: 0.4
+    train_from_scratch: False
 
 bias_evaluation:
     n_folds: 1
