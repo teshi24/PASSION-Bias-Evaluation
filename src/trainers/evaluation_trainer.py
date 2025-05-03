@@ -107,7 +107,8 @@ class EvaluationTrainer(ABC, object):
         self.input_size = config["input_size"]
         self.transform = transforms.Compose(
             [
-                transforms.Resize((144, 144)),
+                # transforms.Resize((144, 144)), # todo: activate for input_size 128
+                transforms.Resize((256, 256)),  # activate for input_size 224
                 transforms.CenterCrop(self.input_size),
                 transforms.ToTensor(),
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
@@ -120,7 +121,7 @@ class EvaluationTrainer(ABC, object):
             dataset_path=Path(data_path),
             batch_size=config.get("batch_size", 128),
             transform=self.transform,
-            num_workers=config.get("num_workers", 4),
+            # num_workers=config.get("num_workers", 4),
             **data_config[dataset_name.value],
         )
         # load the correct model to use as initialization
@@ -563,13 +564,16 @@ class EvaluationTrainer(ABC, object):
             print(f"Bin. Precision: {precision:.2f}")
             print(f"Bin. Recall: {recall:.2f}")
         else:
-            print(
-                classification_report(
-                    y_true=y_true,
-                    y_pred=y_pred,
-                    target_names=self.dataset.classes,
+            try:
+                print(
+                    classification_report(
+                        y_true=y_true,
+                        y_pred=y_pred,
+                        target_names=self.dataset.classes,
+                    )
                 )
-            )
+            except Exception as e:
+                print(f"Error generating classification report: {e}")
             b_acc = balanced_accuracy_score(
                 y_true=y_true,
                 y_pred=y_pred,

@@ -55,8 +55,8 @@ if __name__ == "__main__":
     # overall parameters used for all datasets
     log_wandb = config.pop("log_wandb")
 
-    model = "imagenet_tiny"
-    # model = "imagenet"
+    # model = "imagenet_tiny"
+    model = "imagenet"
     if args.exp1:
         trainer = ExperimentStandardSplit(
             dataset_name=DatasetName.PASSION,

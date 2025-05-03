@@ -2,14 +2,15 @@
 batch_size: &batch_size 64
 seed: 42
 log_wandb: True
-input_size: &input_size 128 # was 224
+input_size: &input_size 224 # was 224
 
 # data paths
 dataset:
     passion:
         path: "data/PASSION"
+        #path: "data/mini_data"
         split_file: "PASSION_split.csv"
-    num_workers: 24
+    #num_workers: 24
 
 # these keys define the eval types
 dummy_uniform:
@@ -27,6 +28,7 @@ dummy_most_frequent:
 
 fine_tuning:
     n_folds: 5
+    #n_folds: 5
     eval_test_performance: True
     # method specific parameters
     train_epochs: 100
