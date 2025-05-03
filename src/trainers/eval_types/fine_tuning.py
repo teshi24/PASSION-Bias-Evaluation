@@ -310,8 +310,12 @@ class EvalFineTuning(BaseEvalType):
         targets = torch.concat(targets).cpu().numpy()
         predictions = torch.concat(predictions).argmax(dim=-1).cpu().numpy()
         indices = torch.concat(indices).numpy()
+
+        f1_score = -1
+        if train_from_scratch is True:
+            f1_score = float(eval_scores_dict["f1"]["scores"][best_epoch] * 100)
         results = {
-            "score": float(eval_scores_dict["f1"]["scores"][best_epoch] * 100),
+            "score": f1_score,
             "filenames": img_names,
             "indices": indices,
             "targets": targets,
