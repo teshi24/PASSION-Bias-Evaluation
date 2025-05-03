@@ -355,8 +355,8 @@ class EvaluationTrainer(ABC, object):
             wandb.run.save()
 
     def create_results(self, df_results):
-        df_labels = pd.read_csv("label.csv")
-        df_split = pd.read_csv("PASSION_split.csv")
+        df_labels = pd.read_csv("../../data/PASSION/label.csv")
+        df_split = pd.read_csv("../../data/PASSION/PASSION_split.csv")
 
         def extract_subject_id(path: str):
             pattern = r"([A-Za-z]+[0-9]+)"
