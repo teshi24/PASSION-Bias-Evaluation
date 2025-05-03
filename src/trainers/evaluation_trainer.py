@@ -322,7 +322,7 @@ class EvaluationTrainer(ABC, object):
             )
 
             print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
-            self.print_eval_scores_bias()
+            self.print_eval_scores_bias(score_dict)
 
         self.finish_wandb(e_type)
         # save the results to the overall dataframe + save df
@@ -414,6 +414,8 @@ class EvaluationTrainer(ABC, object):
         return pd.DataFrame(rows)
 
     def print_eval_scores_bias(self, df_results):
+        logger.debug(df_results)
+
         df_calc_in = self.create_results(df_results)
         labels = [0, 1, 2, 3]
         target_names = ["Eczema", "Fungal", "Others", "Scabies"]
