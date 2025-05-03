@@ -87,9 +87,8 @@ class EvalFineTuning(BaseEvalType):
         **kwargs,
     ) -> dict:
         cls.input_size = input_size
-        classifier, model = cls.create_classifier(
-            dataset, dropout_in_head, model, model_out_dim, use_bn_in_head
-        )
+        device = cls.get_device(model)
+
         # get dataloader for batched compute
         train_loader, eval_loader = cls.get_train_eval_loaders(
             dataset=dataset,
@@ -98,10 +97,12 @@ class EvalFineTuning(BaseEvalType):
             batch_size=batch_size,
             num_workers=num_workers,
         )
-        device = cls.get_device(model)
-        classifier.to(device)
 
         if train_from_scratch is True:
+            classifier, model = cls.create_classifier(
+                dataset, dropout_in_head, model, model_out_dim, use_bn_in_head
+            )
+            classifier.to(device)
             cls.configure_classifier_base(
                 classifier, debug, log_wandb, model, train_loader
             )
@@ -136,17 +137,29 @@ class EvalFineTuning(BaseEvalType):
 
         # load the model from checkpoint if provided
         to_restore = {"epoch": 0}
+        start_epoch = to_restore["epoch"]
         # TODO: fix this here
         if train_from_scratch is False:
             if saved_model_path is not None:
-                restart_from_checkpoint(
-                    Path(saved_model_path) / "checkpoints" / "model_best.pth",
-                    classifier=classifier,
-                    # run_variables=to_restore,
-                    # optimizer=optimizer,
-                    # loss=criterion,
-                )
-        start_epoch = to_restore["epoch"]
+                # Path to the checkpoint file
+                checkpoint_path = run_dir / "checkpoints" / "model_best.pth"
+                checkpoint = torch.load(checkpoint_path)
+                # Restore model
+                classifier = checkpoint[
+                    "classifier"
+                ]  # This only works if it was stored with full model object (not recommended!)
+                classifier.to(device)
+                # TODO: Better: use state_dict, like this:
+                # classifier = YourModelClass(...)
+                # classifier.load_state_dict(checkpoint["classifier_state_dict"])
+
+                # restart_from_checkpoint(
+                #     Path(saved_model_path) / "checkpoints" / "model_best.pth",
+                #     classifier=classifier,
+                #     # run_variables=to_restore,
+                #     # optimizer=optimizer,
+                #     # loss=criterion,
+                # )
 
         # define metrics
         metric_param = {
@@ -328,6 +341,7 @@ class EvalFineTuning(BaseEvalType):
     def save_model_checkpoint(
         cls, classifier, criterion, epoch, optimizer, saved_model_path
     ):
+        # todo: consider saving classifier.state_dict() only
         save_dict = {
             "arch": type(classifier).__name__,
             "epoch": epoch,
