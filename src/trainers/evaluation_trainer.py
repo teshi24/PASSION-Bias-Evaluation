@@ -385,29 +385,28 @@ class EvaluationTrainer(ABC, object):
         # Flatten the DataFrame into one row per image path
         rows = []
         unique_subject_ids = []
-        for _, row in df_results.iterrows():
-            for img_name, idx, lbl, pred in zip(
-                row["filenames"],
-                row["indices"],
-                row["targets"],
-                row["predictions"],
-            ):
-                subject_id = extract_subject_id(img_name)
-                labels = df_labels[df_labels["subject_id"] == subject_id].iloc[0]
-                split = df_split[df_split["subject_id"] == subject_id].iloc[0]
-                rows.append(
-                    {
-                        "correct": lbl == pred,
-                        "image_path": img_name,
-                        "index": idx,
-                        "targets": lbl,
-                        "predictions": pred,
-                        **labels.to_dict(),
-                        **split.drop("subject_id").to_dict(),
-                    }
-                )
-                if subject_id not in unique_subject_ids:
-                    unique_subject_ids.append(subject_id)
+        for img_name, idx, lbl, pred in zip(
+            df_results["filenames"],
+            df_results["indices"],
+            df_results["targets"],
+            df_results["predictions"],
+        ):
+            subject_id = extract_subject_id(img_name)
+            labels = df_labels[df_labels["subject_id"] == subject_id].iloc[0]
+            split = df_split[df_split["subject_id"] == subject_id].iloc[0]
+            rows.append(
+                {
+                    "correct": lbl == pred,
+                    "image_path": img_name,
+                    "index": idx,
+                    "targets": lbl,
+                    "predictions": pred,
+                    **labels.to_dict(),
+                    **split.drop("subject_id").to_dict(),
+                }
+            )
+            if subject_id not in unique_subject_ids:
+                unique_subject_ids.append(subject_id)
 
         print(len(unique_subject_ids))
 
