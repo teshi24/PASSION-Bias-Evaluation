@@ -320,6 +320,10 @@ class EvaluationTrainer(ABC, object):
                 y_true=case_targets,
                 y_pred=case_predictions,
             )
+
+            print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
+            self.print_eval_scores_bias()
+
         self.finish_wandb(e_type)
         # save the results to the overall dataframe + save df
         self.df.loc[len(self.df)] = list(score_dict.values()) + [
@@ -349,6 +353,166 @@ class EvaluationTrainer(ABC, object):
                 wandb_run_name += f"-{add_run_info}"
             wandb.run.name = wandb_run_name
             wandb.run.save()
+
+    def create_results(self, df_results):
+        df_labels = pd.read_csv("label.csv")
+        df_split = pd.read_csv("PASSION_split.csv")
+
+        def extract_subject_id(path: str):
+            pattern = r"([A-Za-z]+[0-9]+)"
+            match = re.search(pattern, path)
+            if match:
+                return str(match.group(1)).strip()
+            else:
+                return np.nan
+
+        # Parse the image_paths and arrays
+        def parse_image_paths(s):
+            s = s.replace("\n", " ").replace("'", '"')
+            s = s.replace("[", "").replace("]", "")
+            return s.split()
+
+        def parse_numpy_array(s):
+            return np.fromstring(s.strip("[]").replace("\n", " "), sep=" ", dtype=int)
+
+        df_results["FileNames"] = df_results["FileNames"].apply(parse_image_paths)
+        df_results["Indices"] = df_results["Indices"].apply(parse_numpy_array)
+        df_results["EvalTargets"] = df_results["EvalTargets"].apply(parse_numpy_array)
+        df_results["EvalPredictions"] = df_results["EvalPredictions"].apply(
+            parse_numpy_array
+        )
+
+        # Flatten the DataFrame into one row per image path
+        rows = []
+        unique_subject_ids = []
+        for _, row in df_results.iterrows():
+            for img_name, idx, lbl, pred in zip(
+                row["FileNames"],
+                row["Indices"],
+                row["EvalTargets"],
+                row["EvalPredictions"],
+            ):
+                subject_id = extract_subject_id(img_name)
+                labels = df_labels[df_labels["subject_id"] == subject_id].iloc[0]
+                split = df_split[df_split["subject_id"] == subject_id].iloc[0]
+                rows.append(
+                    {
+                        "correct": lbl == pred,
+                        "image_path": img_name,
+                        "index": idx,
+                        "targets": lbl,
+                        "predictions": pred,
+                        **labels.to_dict(),
+                        **split.drop("subject_id").to_dict(),
+                    }
+                )
+                if subject_id not in unique_subject_ids:
+                    unique_subject_ids.append(subject_id)
+
+        print(len(unique_subject_ids))
+
+        return pd.DataFrame(rows)
+
+    def print_eval_scores_bias(self, df_results):
+        df_calc_in = self.create_results(df_results)
+        labels = [0, 1, 2, 3]
+        target_names = ["Eczema", "Fungal", "Others", "Scabies"]
+        print_details = True
+
+        def print_detailed_bias_eval_scores(y_true: np.ndarray, y_pred: np.ndarray):
+            if print_details:
+                cm = confusion_matrix(y_true, y_pred, labels=labels)
+                print("Confusion Matrix:")
+                print(cm)
+
+                def get_tp_fp_fn_tn(cm, class_index):
+                    total_classifications = cm.sum()
+                    tp = cm[class_index, class_index]
+                    fp = cm[:, class_index].sum() - tp
+                    fn = cm[class_index, :].sum() - tp
+                    tn = total_classifications - (tp + fp + fn)
+                    return tp, fp, fn, tn
+
+                for i, name in enumerate(target_names):
+                    tp, fp, fn, tn = get_tp_fp_fn_tn(cm, i)
+                    print(f"{name} — TP: {tp}, FP: {fp}, FN: {fn}, TN: {tn}")
+
+            print(
+                classification_report(
+                    y_true=y_true,
+                    y_pred=y_pred,
+                    labels=labels,
+                    target_names=target_names,
+                    # zero_division=0
+                )
+            )
+            b_acc = balanced_accuracy_score(
+                y_true=y_true,
+                y_pred=y_pred,
+            )
+            print(f"Balanced Acc: {b_acc}")
+
+        def print_grouped_result(eval_df, group_by: str):
+            group_types = sorted(eval_df[group_by].unique())
+            group_name = group_by.capitalize()
+            for group_value in group_types:
+                _df = eval_df[eval_df[group_by] == group_value]
+                print(
+                    "~" * 20
+                    + f" {group_name}: {group_value}, Support: {_df.shape[0]} "
+                    + "~" * 20
+                )
+                print_detailed_bias_eval_scores(
+                    y_true=eval_df["targets"][_df.index.values],
+                    y_pred=eval_df["predictions"][_df.index.values],
+                )
+            return group_types
+
+        def print_subgroup_results(eval_df, group_by: list[str]):
+            def to_pascal_case(s: str) -> str:
+                return "".join(word.capitalize() for word in s.split("_"))
+
+            # Get all unique combinations of the group attributes
+            grouped = sorted(eval_df.groupby(group_by))
+
+            for group_values, _df in grouped:
+                if isinstance(group_values, str):
+                    group_values = (group_values,)  # Make it always a tuple
+
+                if _df.shape[0] == 0:
+                    continue  # Skip empty groups
+
+                # Build header text
+                group_info = ", ".join(
+                    f"{to_pascal_case(attr)}: {val}"
+                    for attr, val in zip(group_by, group_values)
+                )
+
+                print("~" * 20 + f" {group_info}, Support: {_df.shape[0]} " + "~" * 20)
+                print_detailed_bias_eval_scores(
+                    y_true=eval_df["targets"][_df.index.values],
+                    y_pred=eval_df["predictions"][_df.index.values],
+                )
+
+        def do_calculations(data):
+            # Detailed evaluation
+            print("*" * 20 + f" overall " + "*" * 20)
+            print_detailed_bias_eval_scores(
+                y_true=data["targets"],
+                y_pred=data["predictions"],
+            )
+
+            print("=" * 20 + " now more dynamic (grouped) " + "=" * 20)
+            print_grouped_result(data, group_by="fitzpatrick")
+            print_grouped_result(data, group_by="sex")
+
+            print("=" * 20 + " grouped output per case using subgroup " + "~=" * 20)
+            print_subgroup_results(data, group_by=["fitzpatrick"])
+            print_subgroup_results(data, group_by=["sex"])
+            # todo: add bins for age
+            print_subgroup_results(data, group_by=["fitzpatrick", "sex"])
+
+        do_calculations(df_calc_in)
 
     def print_eval_scores(self, y_true: np.ndarray, y_pred: np.ndarray):
         if len(self.dataset.classes) == 2:
