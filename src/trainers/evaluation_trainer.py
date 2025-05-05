@@ -301,7 +301,9 @@ class EvaluationTrainer(ABC, object):
                 print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
                 self.print_eval_scores_bias_old(score_dict)
 
-            self.evaluator.run_full_evaluation(self.df[[-1]], add_run_info=add_run_info)
+            self.evaluator.run_full_evaluation(
+                self.df.iloc[[-1]], add_run_info=add_run_info
+            )
 
         self.finish_wandb(e_type)
         # save the results to the overall dataframe + save df
