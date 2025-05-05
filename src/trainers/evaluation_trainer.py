@@ -297,7 +297,7 @@ class EvaluationTrainer(ABC, object):
         ]
         self.df.to_csv(self.df_path, index=False)
         if detailed_evaluation:
-            run_detailed_evaluation = config["detailed_evaluation"]
+            run_detailed_evaluation = config.get("detailed_evaluation", False)
             if run_detailed_evaluation:
                 print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
                 self.print_eval_scores_bias_old(score_dict)
