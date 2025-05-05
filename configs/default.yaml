@@ -8,6 +8,7 @@ input_size: &input_size 224 # was 224
 dataset:
     passion:
         path: "data/PASSION"
+        meta_data_file: "label.csv"
         #path: "data/mini_data"
         split_file: "PASSION_split.csv"
     #num_workers: 24

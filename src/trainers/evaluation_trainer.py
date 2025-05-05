@@ -21,6 +21,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedGroupKFold
 from torchvision import transforms
 from tqdm import tqdm
+from wandb.sdk.lib.file_stream_utils import split_files
 
 from src.datasets.helper import DatasetName, get_dataset
 from src.models.embedder import Embedder
@@ -32,6 +33,7 @@ from src.trainers.eval_types.dummy_classifier import (
     EvalDummyUniform,
 )
 from src.trainers.eval_types.fine_tuning import EvalFineTuning
+from src.utils.evaluator import BiasEvaluator
 from src.utils.utils import fix_random_seeds
 
 eval_type_dict = {
@@ -67,7 +69,8 @@ class EvaluationTrainer(ABC, object):
         self.seed = config["seed"]
         fix_random_seeds(self.seed)
 
-        self.df_name = f"{self.experiment_name}_{self.dataset_name.value}.csv"
+        self.df_description = f"{self.experiment_name}_{self.dataset_name.value}"
+        self.df_name = f"{self.df_description}.csv"
         self.df_path = self.output_path / self.df_name
         self.model_path = self.output_path / self.experiment_name
 
@@ -114,16 +117,25 @@ class EvaluationTrainer(ABC, object):
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ]
         )
-        data_config = copy.deepcopy(config["dataset"])
-        data_path = data_config[dataset_name.value].pop("path")
+        data_config = copy.deepcopy(config["dataset"])[dataset_name.value]
+        data_path = data_config.pop("path")
+        self.evaluator = BiasEvaluator(
+            passion_exp=self.df_description,
+            eval_data_path=self.output_path,
+            dataset_dir=Path(data_path),
+            meta_data_file=data_config["meta_data_file"],
+            split_file=data_config["split_file"],
+        )
+
         self.dataset, self.torch_dataset = get_dataset(
             dataset_name=dataset_name,
             dataset_path=Path(data_path),
             batch_size=config.get("batch_size", 128),
             transform=self.transform,
             # num_workers=config.get("num_workers", 4),
-            **data_config[dataset_name.value],
+            **data_config,
         )
+
         # load the correct model to use as initialization
         if SSL_model == "GoogleDermFound":
             self.dataset.return_embedding = True
@@ -285,58 +297,11 @@ class EvaluationTrainer(ABC, object):
         ]
         self.df.to_csv(self.df_path, index=False)
         if detailed_evaluation:
-            # Detailed evaluation
-            print("*" * 20 + f" {e_type.name()} " + "*" * 20)
-            self.print_eval_scores(
-                y_true=score_dict["targets"],
-                y_pred=score_dict["predictions"],
-            )
-            # Detailed evaluation per demographic
-            eval_df = self.dataset.meta_data.iloc[eval_range].copy()
-            eval_df.reset_index(drop=True, inplace=True)
-            eval_df["targets"] = score_dict["targets"]
-            eval_df["predictions"] = score_dict["predictions"]
-            fst_types = eval_df["fitzpatrick"].unique()
-            for fst in fst_types:
-                _df = eval_df[eval_df["fitzpatrick"] == fst]
-                print(
-                    "~" * 20
-                    + f" Fitzpatrick: {fst}, Support: {_df.shape[0]} "
-                    + "~" * 20
-                )
-                self.print_eval_scores(
-                    y_true=score_dict["targets"][_df.index.values],
-                    y_pred=score_dict["predictions"][_df.index.values],
-                )
-            gender_types = eval_df["sex"].unique()
-            for gender in gender_types:
-                _df = eval_df[eval_df["sex"] == gender]
-                print(
-                    "~" * 20 + f" Gender: {gender}, Support: {_df.shape[0]} " + "~" * 20
-                )
-                self.print_eval_scores(
-                    y_true=score_dict["targets"][_df.index.values],
-                    y_pred=score_dict["predictions"][_df.index.values],
-                )
-            # Aggregate predictions per sample
-            eval_df = eval_df.groupby("subject_id").agg(
-                {"targets": list, "predictions": list}
-            )
-            case_targets = (
-                eval_df["targets"].apply(lambda x: max(set(x), key=x.count)).values
-            )
-            case_predictions = (
-                eval_df["predictions"].apply(lambda x: max(set(x), key=x.count)).values
-            )
-            print("*" * 20 + f" {e_type.name()} -> Case Agg. " + "*" * 20)
-            self.print_eval_scores(
-                y_true=case_targets,
-                y_pred=case_predictions,
-            )
-
             if e_type is EvalFineTuning:
                 print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
-                self.print_eval_scores_bias(score_dict)
+                self.print_eval_scores_bias_old(score_dict)
+
+            self.evaluator.run_full_evaluation(self.df[[-1]], add_run_info=add_run_info)
 
         self.finish_wandb(e_type)
         # save the results to the overall dataframe + save df
@@ -426,7 +391,10 @@ class EvaluationTrainer(ABC, object):
 
         return pd.DataFrame(rows)
 
-    def print_eval_scores_bias(self, df_results):
+    def print_eval_scores_bias_old(self, df_results):
+        print(
+            "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! old analysis !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        )
         logger.debug(df_results)
 
         df_calc_in = self.create_results(df_results)
