@@ -7,6 +7,7 @@ from typing import Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
+from reproducing_PASSION_results.test.old.reform_data_script import detailed_evaluation
 from sklearn.metrics import (
     balanced_accuracy_score,
     classification_report,
@@ -205,7 +206,12 @@ class BiasEvaluator:
 
     # todo potentially add aif360_results
 
-    def run_full_evaluation(self, data: pd.DataFrame = None, add_run_info: str = None):
+    def run_full_evaluation(
+        self,
+        data: pd.DataFrame = None,
+        add_run_info: str = None,
+        run_detailed_evaluation: bool = False,
+    ):
         if data is None:
             df = self.get_data_with_metadata_from_csv(
                 create_data=True, add_run_info=add_run_info
@@ -213,21 +219,22 @@ class BiasEvaluator:
         else:
             df = data
         bins = range(0, 100, 5)
-        df["ageGroup"] = pd.cut(
-            df["age"],
-            bins=bins,
-            labels=[f"{i:02}-{i + 4:02}" for i in bins[:-1]],
-            right=False,
-        )
 
         print("********************* Overall Evaluation *********************")
         y_true = df["targets"]
         y_pred = df["predictions"]
         self._calculate_metrics(y_pred, y_true)
 
-        print("********************* Detailed Evaluation *********************")
-        grouping_columns = ["fitzpatrick", "sex", "ageGroup"]
-        self._detailed_evaluation(df, grouping_columns, add_run_info)
+        if run_detailed_evaluation:
+            print("********************* Detailed Evaluation *********************")
+            df["ageGroup"] = pd.cut(
+                df["age"],
+                bins=bins,
+                labels=[f"{i:02}-{i + 4:02}" for i in bins[:-1]],
+                right=False,
+            )
+            grouping_columns = ["fitzpatrick", "sex", "ageGroup"]
+            self._detailed_evaluation(df, grouping_columns, add_run_info)
 
     def collect_subgroup_results(self, data, group_by: list[str]):
         def to_pascal_case(s: str) -> str:
@@ -402,4 +409,6 @@ class BiasEvaluator:
 if __name__ == "__main__":
     # from bias_evaluator import BiasEvaluator
     evaluator = BiasEvaluator()
-    evaluator.run_full_evaluation(add_run_info="big_model")
+    evaluator.run_full_evaluation(
+        add_run_info="big_model", run_detailed_evaluation=True
+    )

@@ -31,6 +31,7 @@ fine_tuning:
     n_folds: 5
     #n_folds: null
     eval_test_performance: True
+    detailed_evaluation: True
     # method specific parameters
     train_epochs: 100
     batch_size: *batch_size

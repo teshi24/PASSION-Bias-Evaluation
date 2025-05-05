@@ -297,12 +297,15 @@ class EvaluationTrainer(ABC, object):
         ]
         self.df.to_csv(self.df_path, index=False)
         if detailed_evaluation:
-            if e_type is EvalFineTuning:
+            run_detailed_evaluation = config["detailed_evaluation"]
+            if run_detailed_evaluation:
                 print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
                 self.print_eval_scores_bias_old(score_dict)
 
             self.evaluator.run_full_evaluation(
-                self.df.iloc[[-1]], add_run_info=add_run_info
+                self.df.iloc[[-1]],
+                add_run_info=add_run_info,
+                run_detailed_evaluation=run_detailed_evaluation,
             )
 
         self.finish_wandb(e_type)
