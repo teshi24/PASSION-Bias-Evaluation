@@ -23,7 +23,6 @@ def get_dataset(
     if dataset_name == DatasetName.PASSION:
         dataset = PASSIONDataset(
             dataset_dir=dataset_path,
-            meta_data_file="label.csv",
             transform=transform,
             **kwargs,
         )
