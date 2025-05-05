@@ -142,13 +142,14 @@ class EvalFineTuning(BaseEvalType):
         if train_from_scratch is False:
             if saved_model_path is not None:
                 # Path to the checkpoint file
-                checkpoint_path = run_dir / "checkpoints" / "model_best.pth"
-                checkpoint = torch.load(checkpoint_path)
+                checkpoint_path = saved_model_path / "checkpoints" / "model_best.pth"
+                checkpoint = torch.load(checkpoint_path, weights_only=False)
                 # Restore model
                 classifier = checkpoint[
                     "classifier"
                 ]  # This only works if it was stored with full model object (not recommended!)
                 classifier.to(device)
+                cls.print_model(classifier, debug, model)
                 # TODO: Better: use state_dict, like this:
                 # classifier = YourModelClass(...)
                 # classifier.load_state_dict(checkpoint["classifier_state_dict"])
@@ -417,6 +418,12 @@ class EvalFineTuning(BaseEvalType):
     ):
         # make sure the classifier can get trained
         set_requires_grad(classifier, True)
+        cls.print_model(classifier, debug, model)
+        if log_wandb:
+            wandb.watch(classifier, log="all", log_freq=len(train_loader))
+
+    @classmethod
+    def print_model(cls, classifier, debug, model):
         if debug and model is not None:
             try:
                 summary(classifier, input_size=(1, 3, cls.input_size, cls.input_size))
@@ -425,8 +432,6 @@ class EvalFineTuning(BaseEvalType):
                 print(
                     f"Number of parameters backbone: {classifier.backbone.model.num_parameters():,}"
                 )
-        if log_wandb:
-            wandb.watch(classifier, log="all", log_freq=len(train_loader))
 
     @classmethod
     def get_device(cls, model):
