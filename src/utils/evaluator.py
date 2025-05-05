@@ -7,7 +7,6 @@ from typing import Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
-from reproducing_PASSION_results.test.old.reform_data_script import detailed_evaluation
 from sklearn.metrics import (
     balanced_accuracy_score,
     classification_report,
