@@ -206,7 +206,7 @@ class BiasEvaluator:
     # todo potentially add aif360_results
 
     def run_full_evaluation(self, data: pd.DataFrame = None, add_run_info: str = None):
-        if not data:
+        if data is None:
             df = self.get_data_with_metadata_from_csv(
                 create_data=True, add_run_info=add_run_info
             )
