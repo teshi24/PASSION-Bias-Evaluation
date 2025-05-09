@@ -348,6 +348,9 @@ class EvaluationTrainer(ABC, object):
                 wandb_run_name += f"-{add_run_info}"
             wandb.run.name = wandb_run_name
             wandb.run.save()
+            wandb.log("Wandb initialized", wandb.run)
+            wandb.log({"log": "Your message"})
+            print("Wandb initialized", wandb.run)
 
     def create_results(self, df_results):
         df_labels = pd.read_csv("data/PASSION/label.csv")
