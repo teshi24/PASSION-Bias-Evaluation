@@ -128,9 +128,6 @@ def embed_dataset(
     # else:
     #    indices = None
 
-    # logger.debug(f"images: {images}")
-    # logger.debug(f"paths: {paths}")
-    # logger.debug(f"indices: {indices}")
     return emb_space, labels, images, paths, indices
 
 
