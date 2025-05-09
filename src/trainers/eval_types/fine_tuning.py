@@ -150,6 +150,8 @@ class EvalFineTuning(BaseEvalType):
                 ]  # This only works if it was stored with full model object (not recommended!)
                 classifier.to(device)
                 cls.print_model(classifier, debug, model)
+                if log_wandb:
+                    wandb.watch(classifier, log="all", log_freq=len(train_loader))
                 # TODO: Better: use state_dict, like this:
                 # classifier = YourModelClass(...)
                 # classifier.load_state_dict(checkpoint["classifier_state_dict"])
