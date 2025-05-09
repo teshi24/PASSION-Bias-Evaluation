@@ -54,4 +54,4 @@ fine_tuning:
   # head parameters
   use_bn_in_head: true
   dropout_in_head: 0.4
-  train_from_scratch: false
+  train_from_scratch: true
