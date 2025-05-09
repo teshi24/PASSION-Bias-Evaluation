@@ -233,6 +233,10 @@ class BiasEvaluator:
             )
         bins = range(0, 100, 5)
 
+        print(f"df: {df}")
+        print(f'df["targets"]: {df["targets"]}')
+        print(f'df["predictions"]: {df["predictions"]}')
+
         print("********************* Overall Evaluation *********************")
         y_true = df["targets"]
         y_pred = df["predictions"]
