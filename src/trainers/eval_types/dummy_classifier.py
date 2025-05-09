@@ -46,7 +46,7 @@ class EvalDummy(BaseEvalType):
         )
         return {
             "score": f1,
-            "filenames": [],
+            "filenames": [f"{i}" for i in range(len(y_eval))],
             "indices": [i for i in range(len(y_eval))],
             "targets": y_eval,
             "predictions": y_pred,
