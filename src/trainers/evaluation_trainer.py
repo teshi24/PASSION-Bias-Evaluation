@@ -409,7 +409,6 @@ class EvaluationTrainer(ABC, object):
         print(
             "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! old analysis !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         )
-        logger.debug(df_results)
 
         df_calc_in = self.create_results(df_results)
         labels = [0, 1, 2, 3]

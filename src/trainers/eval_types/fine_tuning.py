@@ -308,8 +308,8 @@ class EvalFineTuning(BaseEvalType):
         img_names, targets, predictions, indices = [], [], [], []
         classifier.eval()
         for img, img_name, target, index in eval_loader:
-            logger.debug(f"img_name: {img_name}")
-            logger.debug(f"index: {index}")
+            # logger.debug(f"img_name: {img_name}")
+            # logger.debug(f"index: {index}")
             img = img.to(device, non_blocking=True)
             target = target.to(device, non_blocking=True)
             with torch.no_grad():
@@ -320,8 +320,8 @@ class EvalFineTuning(BaseEvalType):
             img_names.append(img_name)
             indices.append(index)
 
-        logger.debug(f"img_names: {img_names}")
-        logger.debug(f"indices: {indices}")
+        # logger.debug(f"img_names: {img_names}")
+        # logger.debug(f"indices: {indices}")
         img_names = np.hstack(img_names)
         targets = torch.concat(targets).cpu().numpy()
         predictions = torch.concat(predictions).argmax(dim=-1).cpu().numpy()
