@@ -215,11 +215,6 @@ class BiasEvaluator:
             "balancedAcc": balanced_accuracy_score(y_true, y_pred),
         }
 
-    def run_evaluation_without_metadata(
-        self, data: pd.DataFrame = None, add_run_info: str = None
-    ):
-        print(f"data without metadata: {data}")
-
     # todo potentially add aif360_results
     def run_full_evaluation(
         self,

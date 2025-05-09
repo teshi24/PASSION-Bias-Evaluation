@@ -314,10 +314,6 @@ class EvaluationTrainer(ABC, object):
                     add_run_info=add_run_info,
                     run_detailed_evaluation=run_detailed_evaluation,
                 )
-            else:
-                self.evaluator.run_evaluation_without_metadata(
-                    self.df.iloc[[-1]], add_run_info=add_run_info
-                )
 
         self.finish_wandb(e_type)
         # save the results to the overall dataframe + save df
@@ -506,19 +502,12 @@ class EvaluationTrainer(ABC, object):
                 y_pred=data["predictions"],
             )
 
-            print("=" * 20 + " now more dynamic (grouped) " + "=" * 20)
-            print_grouped_result(data, group_by="fitzpatrick")
-            print_grouped_result(data, group_by="sex")
-
             print("=" * 20 + " grouped output per case using subgroup " + "=" * 20)
-            print("dataset")
             bins = list(range(0, 100, 5))
             labels = [f"{i}-{i + 4}" for i in bins[:-1]]
             data["ageGroup"] = pd.cut(
                 data["age"], bins=bins, labels=labels, right=False
             )
-            print(data)
-
             print_subgroup_results(data, group_by=["fitzpatrick"])
             print_subgroup_results(data, group_by=["sex"])
             print_subgroup_results(data, group_by=["ageGroup"])
