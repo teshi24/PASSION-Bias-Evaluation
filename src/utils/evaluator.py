@@ -269,6 +269,12 @@ class BiasEvaluator:
             support = _df.shape[0]
             if support == 0:
                 print(f"no support: group_by: {group_by}, group_values: {group_values}")
+                results.append(
+                    {
+                        **{attr: val for attr, val in zip(group_by, group_values)},
+                        "Support": 0,
+                    }
+                )
                 continue
 
             group_info = ", ".join(
@@ -331,52 +337,57 @@ class BiasEvaluator:
             underprivileged = []
             avgprivileged = []
             unclear = []
+            no_support = []
 
             for _, row in subgroup_df.iterrows():
-                macro_tpr = row["Macro-TPR"]
-                macro_fpr = row["Macro-FPR"]
-
-                # Compare TPR
-                tpr_privilege = 0
-                tpr_diff = macro_tpr - macro_tpr_avg
-                if abs(tpr_diff) <= self.threshold_eq_rates:
-                    tpr_comp = f"TPR ~ ({macro_tpr:.2f})"
-                elif tpr_diff > 0:
-                    tpr_comp = f"TPR ↑ ({macro_tpr:.2f})"
-                    tpr_privilege = 1
-                else:
-                    tpr_comp = f"TPR ↓ ({macro_tpr:.2f})"
-                    tpr_privilege = -1
-
-                # Compare FPR
-                fpr_privilege = 0
-                fpr_diff = macro_fpr - macro_fpr_avg
-                if abs(fpr_diff) <= self.threshold_eq_rates:
-                    fpr_comp = f"FPR ~ ({macro_fpr:.2f})"
-                elif fpr_diff > 0:
-                    fpr_comp = f"FPR ↑ ({macro_fpr:.2f})"
-                    fpr_privilege = -1
-                else:
-                    fpr_comp = f"FPR ↓ ({macro_fpr:.2f})"
-                    fpr_privilege = 1
-
+                support = row["Support"]
                 label = (
                     ", ".join(str(row[col]) for col in group)
-                    + f"; Support: {row['Support']:>4}"
+                    + f"; Support: {support:>4}"
                 )
-                reason = f"{tpr_comp}, {fpr_comp}"
-                info = (label, reason)
+                if support > 0:
+                    macro_tpr = row["Macro-TPR"]
+                    macro_fpr = row["Macro-FPR"]
 
-                privilege = tpr_privilege + fpr_privilege
-                if privilege > 0:
-                    privileged.append(info)
-                elif privilege < 0:
-                    underprivileged.append(info)
-                # privilege = 0
-                elif tpr_privilege == fpr_privilege:  # both are 0
-                    avgprivileged.append(info)
+                    # Compare TPR
+                    tpr_privilege = 0
+                    tpr_diff = macro_tpr - macro_tpr_avg
+                    if abs(tpr_diff) <= self.threshold_eq_rates:
+                        tpr_comp = f"TPR ~ ({macro_tpr:.2f})"
+                    elif tpr_diff > 0:
+                        tpr_comp = f"TPR ↑ ({macro_tpr:.2f})"
+                        tpr_privilege = 1
+                    else:
+                        tpr_comp = f"TPR ↓ ({macro_tpr:.2f})"
+                        tpr_privilege = -1
+
+                    # Compare FPR
+                    fpr_privilege = 0
+                    fpr_diff = macro_fpr - macro_fpr_avg
+                    if abs(fpr_diff) <= self.threshold_eq_rates:
+                        fpr_comp = f"FPR ~ ({macro_fpr:.2f})"
+                    elif fpr_diff > 0:
+                        fpr_comp = f"FPR ↑ ({macro_fpr:.2f})"
+                        fpr_privilege = -1
+                    else:
+                        fpr_comp = f"FPR ↓ ({macro_fpr:.2f})"
+                        fpr_privilege = 1
+
+                    reason = f"{tpr_comp}, {fpr_comp}"
+                    info = (label, reason)
+
+                    privilege = tpr_privilege + fpr_privilege
+                    if privilege > 0:
+                        privileged.append(info)
+                    elif privilege < 0:
+                        underprivileged.append(info)
+                    # privilege = 0
+                    elif tpr_privilege == fpr_privilege:  # both are 0
+                        avgprivileged.append(info)
+                    else:
+                        unclear.append(info)  # one is +1, one -1
                 else:
-                    unclear.append(info)  # one is +1, one -1
+                    no_support.append((label, None))
 
             report_key = ", ".join(group)
             report[report_key] = {
@@ -387,6 +398,7 @@ class BiasEvaluator:
                     "underprivileged": underprivileged,
                     "average": avgprivileged,
                     "unclear": unclear,
+                    "no support": no_support,
                 },
             }
         final_df = pd.concat(dfs, ignore_index=True)
@@ -407,11 +419,13 @@ class BiasEvaluator:
             print(
                 f"macro-TPR avg: {group_report['macro_tpr_avg']}; macro-FPR avg: {group_report['macro_fpr_avg']}"
             )
-
             for category, entries in group_report["categories"].items():
                 print(f"{category}:")
                 for label, reasons in entries:
-                    print(f"  {label} - Reasons: {reasons}")
+                    if reasons:
+                        print(f"  {label} - Reasons: {reasons}")
+                    else:
+                        print(f"  {label}")
                 if len(entries) == 0:
                     print("  -")
 
