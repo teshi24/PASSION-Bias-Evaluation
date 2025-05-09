@@ -218,6 +218,7 @@ class BiasEvaluator:
     # todo potentially add aif360_results
     def run_full_evaluation(
         self,
+        analysis_name: str,
         data: pd.DataFrame = None,
         add_run_info: str = None,
         run_detailed_evaluation: bool = False,
@@ -232,13 +233,17 @@ class BiasEvaluator:
             )
         bins = range(0, 100, 5)
 
-        print("********************* Overall Evaluation *********************")
+        print(
+            f"********************* Overall Evaluation - {analysis_name} *********************"
+        )
         y_true = df["targets"]
         y_pred = df["predictions"]
         self._calculate_metrics(y_pred, y_true)
 
         if run_detailed_evaluation:
-            print("********************* Detailed Evaluation *********************")
+            print(
+                f"********************* Detailed Evaluation - {analysis_name} *********************"
+            )
             df["ageGroup"] = pd.cut(
                 df["age"],
                 bins=bins,
@@ -422,5 +427,7 @@ if __name__ == "__main__":
     # from bias_evaluator import BiasEvaluator
     evaluator = BiasEvaluator()
     evaluator.run_full_evaluation(
-        add_run_info="big_model", run_detailed_evaluation=True
+        analysis_name="evaluator standalone",
+        add_run_info="big_model",
+        run_detailed_evaluation=True,
     )
