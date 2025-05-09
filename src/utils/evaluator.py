@@ -78,6 +78,18 @@ class BiasEvaluator:
             input_file = self.eval_data_path / f"{self.passion_exp}__{add_run_info}.csv"
             df_results = pd.read_csv(input_file)
             df_results = df_results.iloc[[-1]]
+
+            df_results["FileNames"] = df_results["FileNames"].apply(
+                self._parse_image_paths
+            )
+            df_results["Indices"] = df_results["Indices"].apply(self._parse_numpy_array)
+            df_results["EvalTargets"] = df_results["EvalTargets"].apply(
+                self._parse_numpy_array
+            )
+            df_results["EvalPredictions"] = df_results["EvalPredictions"].apply(
+                self._parse_numpy_array
+            )
+
             data = self._aggregate_data_with_metadata(df_results)
             data.to_csv(predictions_n_meta_data_file, index=False)
             return data
@@ -95,14 +107,6 @@ class BiasEvaluator:
         return data
 
     def _aggregate_data_with_metadata(self, df_results):
-        df_results["FileNames"] = df_results["FileNames"].apply(self._parse_image_paths)
-        df_results["Indices"] = df_results["Indices"].apply(self._parse_numpy_array)
-        df_results["EvalTargets"] = df_results["EvalTargets"].apply(
-            self._parse_numpy_array
-        )
-        df_results["EvalPredictions"] = df_results["EvalPredictions"].apply(
-            self._parse_numpy_array
-        )
         output_rows = []
         seen_subject_ids = set()
         for _, row in df_results.iterrows():
