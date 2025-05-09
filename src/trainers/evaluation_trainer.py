@@ -119,12 +119,20 @@ class EvaluationTrainer(ABC, object):
         )
         data_config = copy.deepcopy(config["dataset"])[dataset_name.value]
         data_path = data_config.pop("path")
+        data_label_config = (
+            data_config["impetigo_labels"]
+            if data_config["label_col"] == "IMPETIGO"
+            else data_config["condition_labels"]
+        )
+        print(f"data_label_config: {data_label_config}")
         self.evaluator = BiasEvaluator(
             passion_exp=self.df_description,
             eval_data_path=self.output_path,
             dataset_dir=Path(data_path),
             meta_data_file=data_config["meta_data_file"],
             split_file=data_config["split_file"],
+            target_names=data_label_config["target_names"],
+            labels=data_label_config["labels"],
         )
 
         self.dataset, self.torch_dataset = get_dataset(

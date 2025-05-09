@@ -23,6 +23,8 @@ class BiasEvaluator:
         meta_data_file: Union[str, Path] = "label.csv",
         split_file: Union[str, Path, None] = "PASSION_split.csv",
         threshold_eq_rates: float = 0.015,
+        target_names: [str] = None,
+        labels: [str] = None,
     ):
         self.passion_exp = passion_exp
         self.eval_data_path = Path(eval_data_path)
@@ -32,9 +34,8 @@ class BiasEvaluator:
 
         self.threshold_eq_rates = threshold_eq_rates
 
-        # todo: provide them by param
-        self.target_names = ["Eczema", "Fungal", "Others", "Scabies"]
-        self.labels = [0, 1, 2, 3]
+        self.target_names = target_names
+        self.labels = labels
 
         # todo: only read once in the whole pipeline
         self.df_labels = pd.read_csv(self.dataset_dir / meta_data_file)
@@ -425,7 +426,10 @@ class BiasEvaluator:
 
 if __name__ == "__main__":
     # from bias_evaluator import BiasEvaluator
-    evaluator = BiasEvaluator()
+    target_names = ["Eczema", "Fungal", "Others", "Scabies"]
+    labels = [0, 1, 2, 3]
+
+    evaluator = BiasEvaluator(target_names=target_names, labels=labels)
     evaluator.run_full_evaluation(
         analysis_name="evaluator standalone",
         add_run_info="big_model",
