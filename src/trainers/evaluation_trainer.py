@@ -120,9 +120,9 @@ class EvaluationTrainer(ABC, object):
         data_config = copy.deepcopy(config["dataset"])[dataset_name.value]
         data_path = data_config.pop("path")
         data_label_config = (
-            data_config["impetigo_labels"]
-            if data_config["label_col"] == "IMPETIGO"
-            else data_config["condition_labels"]
+            data_config.get("impetigo_labels")
+            if data_config.get("label_col") == "IMPETIGO"
+            else data_config.get("condition_labels")
         )
         print(f"data_label_config: {data_label_config}")
         self.evaluator = BiasEvaluator(
