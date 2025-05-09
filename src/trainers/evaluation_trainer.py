@@ -110,8 +110,8 @@ class EvaluationTrainer(ABC, object):
         self.input_size = config["input_size"]
         self.transform = transforms.Compose(
             [
-                # transforms.Resize((144, 144)), # todo: activate for input_size 128
-                transforms.Resize((256, 256)),  # activate for input_size 224
+                transforms.Resize((144, 144)),  # todo: activate for input_size 128
+                # transforms.Resize((256, 256)),  # activate for input_size 224
                 transforms.CenterCrop(self.input_size),
                 transforms.ToTensor(),
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
@@ -126,7 +126,7 @@ class EvaluationTrainer(ABC, object):
         )
         print(f"data_label_config: {data_label_config}")
         self.evaluator = BiasEvaluator(
-            passion_exp=self.df_description,
+            passion_exp=self.df_description / self.SSL_model,
             eval_data_path=self.output_path,
             dataset_dir=Path(data_path),
             meta_data_file=data_config["meta_data_file"],
@@ -257,6 +257,7 @@ class EvaluationTrainer(ABC, object):
                             add_run_info=f"Fold-{i_fold}",
                             split_name=split_name,
                             saved_model_path=None,
+                            detailed_evaluation=True,
                         )
                 if config["eval_test_performance"]:
                     self._run_evaluation_on_range(
