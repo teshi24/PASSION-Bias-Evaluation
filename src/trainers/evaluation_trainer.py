@@ -297,6 +297,13 @@ class EvaluationTrainer(ABC, object):
         ]
         self.df.to_csv(self.df_path, index=False)
         if detailed_evaluation:
+            # Detailed evaluation
+            print("*" * 20 + f" {e_type.name()} " + "*" * 20)
+            self.print_eval_scores(
+                y_true=score_dict["targets"],
+                y_pred=score_dict["predictions"],
+            )
+
             run_detailed_evaluation = config.get("detailed_evaluation", False)
             if run_detailed_evaluation:
                 print("=" * 20 + f" {e_type.name()} = my analysis " + "=" * 20)
