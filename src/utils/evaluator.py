@@ -68,8 +68,7 @@ class BiasEvaluator:
         match = re.search(r"([A-Za-z]+[0-9]+)", path)
         return str(match.group(1)).strip() if match else np.nan
 
-    # todo: call this from the metadata result as csv
-    def get_data_with_metadata_from_csv(
+    def _get_data_with_metadata_from_csv(
         self, create_data: bool = True, add_run_info: str = ""
     ):
         predictions_n_meta_data_file = self.get_predictions_with_meta_data_file_name(
@@ -79,14 +78,23 @@ class BiasEvaluator:
             input_file = self.eval_data_path / f"{self.passion_exp}__{add_run_info}.csv"
             df_results = pd.read_csv(input_file)
             df_results = df_results.iloc[[-1]]
-            data = self.aggregate_data_with_metadata(df_results)
+            data = self._aggregate_data_with_metadata(df_results)
             data.to_csv(predictions_n_meta_data_file, index=False)
             return data
 
         return pd.read_csv(predictions_n_meta_data_file)
 
-    # todo: call this from the pipeline
-    def aggregate_data_with_metadata(self, df_results):
+    def _get_data_with_metadata(
+        self, df_results: pd.DataFrame = None, add_run_info: str = ""
+    ):
+        predictions_n_meta_data_file = self.get_predictions_with_meta_data_file_name(
+            add_run_info
+        )
+        data = self._aggregate_data_with_metadata(df_results)
+        data.to_csv(predictions_n_meta_data_file, index=False)
+        return data
+
+    def _aggregate_data_with_metadata(self, df_results):
         df_results["FileNames"] = df_results["FileNames"].apply(self._parse_image_paths)
         df_results["Indices"] = df_results["Indices"].apply(self._parse_numpy_array)
         df_results["EvalTargets"] = df_results["EvalTargets"].apply(
@@ -212,11 +220,13 @@ class BiasEvaluator:
         run_detailed_evaluation: bool = False,
     ):
         if data is None:
-            df = self.get_data_with_metadata_from_csv(
+            df = self._get_data_with_metadata_from_csv(
                 create_data=True, add_run_info=add_run_info
             )
         else:
-            df = data
+            df = self._get_data_with_metadata(
+                df_results=data, add_run_info=add_run_info
+            )
         bins = range(0, 100, 5)
 
         print("********************* Overall Evaluation *********************")
