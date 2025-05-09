@@ -343,8 +343,6 @@ class EvaluationTrainer(ABC, object):
                 wandb_run_name += f"-{add_run_info}"
             wandb.run.name = wandb_run_name
             wandb.run.save()
-            wandb.log({"log": "Your message"})
-            print({"Wandb initialized", wandb.run})
 
     def print_eval_scores(self, y_true: np.ndarray, y_pred: np.ndarray):
         if len(self.dataset.classes) == 2:
