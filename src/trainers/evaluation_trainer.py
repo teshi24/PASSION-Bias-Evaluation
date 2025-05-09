@@ -126,7 +126,7 @@ class EvaluationTrainer(ABC, object):
         )
         print(f"data_label_config: {data_label_config}")
         self.evaluator = BiasEvaluator(
-            passion_exp=self.df_description / self.SSL_model,
+            passion_exp=self.df_description / SSL_model,
             eval_data_path=self.output_path,
             dataset_dir=Path(data_path),
             meta_data_file=data_config["meta_data_file"],
