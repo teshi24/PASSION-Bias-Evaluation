@@ -258,7 +258,7 @@ class BiasEvaluator:
         def to_pascal_case(s: str) -> str:
             return "".join(word.capitalize() for word in s.split("_"))
 
-        grouped = sorted(data.groupby(group_by))
+        grouped = sorted(data.groupby(group_by, observed=False))
         results = []
         result_keys = None
 
