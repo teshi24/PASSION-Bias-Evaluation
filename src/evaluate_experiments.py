@@ -118,40 +118,38 @@ if __name__ == "__main__":
 
     if args.exp5:
         _config = copy.deepcopy(config)
-        default_split_file = _config["dataset"]["passion"]["split_file"]
         _config["fine_tuning"]["n_folds"] = None
         _config["fine_tuning"]["train_from_scratch"] = True
-        split_files = [
-            default_split_file,
-            "split_dataset__conditions_PASSION_impetig.csv",
-            "split_dataset__conditions_PASSION_impetig_country.csv",
-            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick.csv",
-            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex.csv",
-            "split_dataset__conditions_PASSION_impetig_fitzpatrick.csv",
+        split_names = [
+            "split_dataset__conditions_PASSION_impetig",
+            "split_dataset__conditions_PASSION_impetig_country",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex",
+            "split_dataset__conditions_PASSION_impetig_fitzpatrick",
             "split_dataset__none.csv",
         ]
 
         if args.split_nr is not None:
-            split_file = split_files[args.split_nr]
-            _config["dataset"]["passion"]["split_file"] = split_file
+            split_name = split_names[args.split_nr]
+            _config["dataset"]["passion"]["split_file"] = f"{split_name}.csv"
             trainer = ExperimentStratifiedValidationSplit(
                 dataset_name=DatasetName.PASSION,
                 config=config,
                 SSL_model=model,
                 append_to_df=args.append_results,
                 log_wandb=log_wandb,
-                add_info=f"conditions__{split_file}",
+                add_info=f"conditions__{split_name}",
             )
             trainer.evaluate()
         else:
-            for split_file in split_files:
-                _config["dataset"]["passion"]["split_file"] = split_file
+            for split_name in split_names:
+                _config["dataset"]["passion"]["split_file"] = f"{split_name}.csv"
                 trainer = ExperimentStratifiedValidationSplit(
                     dataset_name=DatasetName.PASSION,
                     config=config,
                     SSL_model=model,
                     append_to_df=args.append_results,
                     log_wandb=log_wandb,
-                    add_info=f"conditions__{split_file}",
+                    add_info=f"conditions__{split_name}",
                 )
                 trainer.evaluate()
