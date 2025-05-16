@@ -10,6 +10,9 @@ from src.trainers.experiment_age_group_generalization import (
 )
 from src.trainers.experiment_center_generalization import ExperimentCenterGeneralization
 from src.trainers.experiment_standard_split import ExperimentStandardSplit
+from src.trainers.experiment_stratified_validation_split import (
+    ExperimentStratifiedValidationSplit,
+)
 from src.utils.loader import Loader
 
 my_parser = argparse.ArgumentParser(description="Experiments for the PASSION paper.")
