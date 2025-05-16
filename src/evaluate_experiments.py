@@ -122,12 +122,12 @@ if __name__ == "__main__":
         ]
         for split_file in split_files:
             _config["dataset"]["passion"]["split_file"] = split_file
-            trainer = ExperimentStandardSplit(
+            trainer = ExperimentStratifiedValidationSplit(
                 dataset_name=DatasetName.PASSION,
                 config=config,
                 SSL_model=model,
                 append_to_df=args.append_results,
                 log_wandb=log_wandb,
-                add_info=f"conditions__used_split__{split_file}",
+                add_info=f"conditions__{split_file}",
             )
             trainer.evaluate()
