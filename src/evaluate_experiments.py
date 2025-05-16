@@ -40,6 +40,11 @@ my_parser.add_argument(
     help="If the experiment 4, i.e. generalization age groups, should be run.",
 )
 my_parser.add_argument(
+    "--exp5",
+    action="store_true",
+    help="If the experiment 5, differential diagnosis, should be run with different split files.",
+)
+my_parser.add_argument(
     "--append_results",
     action="store_true",
     help="If the results should be appended to the existing df (needs to be used with care!)",
@@ -100,3 +105,29 @@ if __name__ == "__main__":
             log_wandb=log_wandb,
         )
         trainer.evaluate()
+
+    if args.exp5:
+        _config = copy.deepcopy(config)
+        default_split_file = _config["dataset"]["passion"]["split_file"]
+        _config["fine_tuning"]["n_folds"] = None
+        _config["fine_tuning"]["train_from_scratch"] = True
+        split_files = [
+            default_split_file,
+            "split_dataset__conditions_PASSION_impetig.csv",
+            "split_dataset__conditions_PASSION_impetig_country.csv",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick.csv",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex.csv",
+            "split_dataset__conditions_PASSION_impetig_fitzpatrick.csv",
+            "split_dataset__none.csv",
+        ]
+        for split_file in split_files:
+            _config["dataset"]["passion"]["split_file"] = split_file
+            trainer = ExperimentStandardSplit(
+                dataset_name=DatasetName.PASSION,
+                config=config,
+                SSL_model=model,
+                append_to_df=args.append_results,
+                log_wandb=log_wandb,
+                add_info=f"conditions__used_split__{split_file}",
+            )
+            trainer.evaluate()

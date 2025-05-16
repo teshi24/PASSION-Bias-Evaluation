@@ -12,6 +12,7 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix,
 )
+from sklearn.model_selection import train_test_split
 
 
 class BiasEvaluator:
@@ -47,7 +48,10 @@ class BiasEvaluator:
     def get_predictions_with_meta_data_file_name(self, add_run_info):
         return (
             self.out_dir
+            # todo cleanup
             / f"predictions_with_metadata_{self.passion_exp}__{add_run_info}_img_lvl.csv"
+            # / "analysis_experiment_standard_split_conditions_passion__big_model_test_img_lvl.csv"
+            # / "predictions_with_metadata_experiment_standard_split_conditions_passion__imagenet_tiny__Test_img_lvl.csv"
         )
 
     @staticmethod
@@ -232,7 +236,6 @@ class BiasEvaluator:
             df = self._get_data_with_metadata(
                 df_results=data, add_run_info=add_run_info
             )
-        bins = range(0, 100, 5)
 
         print(
             f"********************* Overall Evaluation - {analysis_name} *********************"
@@ -245,14 +248,18 @@ class BiasEvaluator:
             print(
                 f"********************* Detailed Evaluation - {analysis_name} *********************"
             )
-            df["ageGroup"] = pd.cut(
-                df["age"],
-                bins=bins,
-                labels=[f"{i:02}-{i + 4:02}" for i in bins[:-1]],
-                right=False,
-            )
-            grouping_columns = ["fitzpatrick", "sex", "ageGroup"]
+            df["ageGroup"] = self._generate_age_group(df)
+            grouping_columns = ["fitzpatrick", "sex", "ageGroup", "country"]
             self._detailed_evaluation(df, grouping_columns, add_run_info)
+
+    def _generate_age_group(self, df):
+        bins = range(0, 101, 5)
+        return pd.cut(
+            df["age"],
+            bins=bins,
+            labels=[f"{i:02}-{i + 4:02}" for i in bins[:-1]],
+            right=False,
+        )
 
     def collect_subgroup_results(self, data, group_by: list[str]):
         def to_pascal_case(s: str) -> str:
@@ -437,6 +444,239 @@ class BiasEvaluator:
             )
         return group_combinations
 
+    def _create_split(
+        self,
+        original_df,
+        stratify_cols: [str] = None,
+        print_unknown_stratification_issues: bool = False,
+    ):
+        df = original_df.copy()
+
+        # Filter the TRAIN data
+        df_save_single_records = pd.DataFrame()
+        if stratify_cols is None:
+            stratify_str = "none"
+        else:
+            stratify_str = "_".join(stratify_cols)
+            print(f"filtering stratification potential issues for: {stratify_str}")
+            lonely_subject_ids = []
+            if "fitzpatrick" in stratify_cols:
+                lonely_subject_ids.extend(["AA00970059", "AA00971417", "AA00971384"])
+            if "country" in stratify_cols:
+                lonely_subject_ids.extend(["AA00970059"])
+            if "country" in stratify_cols and "fitzpatrick" in stratify_cols:
+                lonely_subject_ids.extend(
+                    [
+                        "AA00970095",
+                        "AA00970651",
+                        "AA00970828",
+                        "AA00971108",
+                        "AA00971141",
+                        "AA00971251",
+                        "AA00971417",
+                        "AA00971972",
+                    ]
+                )
+                if "sex" in stratify_cols:
+                    lonely_subject_ids.extend(
+                        [
+                            "AA00970134",
+                            "AA00970309",
+                            "AA00970661",
+                            "AA00970743",
+                            "AA00970872",
+                            "AA00971265",
+                            "AA00971325",
+                            "AA00971347",
+                            "AA00971351",
+                            "AA00971833",
+                            "AA00972003",
+                        ]
+                    )
+            if len(lonely_subject_ids) > 0:
+                lonely_subject_mask = df["subject_id"].isin(lonely_subject_ids)
+                df_save_single_records = df[lonely_subject_mask]
+                df = df[~lonely_subject_mask]
+            print(f"df_save_single_records: {df_save_single_records}")
+
+        print(f"stratification ongoing with: {stratify_str}")
+
+        train_df = df[df["Split"] == "TRAIN"].copy()
+        test_df = df[df["Split"] == "TEST"].copy()
+
+        if print_unknown_stratification_issues and stratify_cols:
+            group_sizes = train_df.groupby(stratify_cols).size()
+            rare_combinations = group_sizes[group_sizes < 2].reset_index()
+            rare_rows = train_df.merge(rare_combinations, on=stratify_cols, how="inner")
+            print("🔍 Records with too few samples for stratification:")
+            print(rare_rows)
+
+        stratify_vals = (
+            train_df[stratify_cols].astype(str).agg("_".join, axis=1)
+            if stratify_cols is not None
+            else None
+        )
+        label_col = ["conditions_PASSION", "impetig"]
+        X = train_df.drop(columns=label_col + ["Split"])
+        y = train_df[label_col]
+
+        # Perform the split
+        X_train, X_val, y_train, y_val = train_test_split(
+            X, y, test_size=0.2, stratify=stratify_vals, random_state=42
+        )
+
+        # Label splits
+        train_split = X_train[["subject_id"]].copy()
+        if not df_save_single_records.empty:
+            train_split = pd.concat(
+                [train_split, df_save_single_records[["subject_id"]]]
+            )
+        train_split["Split"] = "TRAIN"
+
+        val_split = X_val[["subject_id"]].copy()
+        val_split["Split"] = "VALIDATION"
+
+        test_split = test_df[["subject_id", "Split"]].copy()
+
+        # Combine all
+        final_df = pd.concat([train_split, val_split, test_split], axis=0).reset_index(
+            drop=True
+        )
+        final_df.to_csv(f"split_dataset__{stratify_str}.csv", index=False)
+        return final_df, stratify_str
+
+    def run_split_distribution_evaluation(
+        self, test_split: bool = False, create_splits: bool = False
+    ):
+        interesting_cols = [
+            "country",
+            "sex",
+            "fitzpatrick",
+            "impetig",
+            "conditions_PASSION",
+            "ageGroup",
+        ]
+        # todo: this is on the subject only the split, it could be all subjects with multiple pictures in one split
+
+        splits_to_evaluate = [(self.df_split, "PASSION_split")]
+        if create_splits:
+            df = self.df_labels.copy().merge(self.df_split, on="subject_id", how="left")
+            df.reset_index(drop=True, inplace=True)
+            splits_to_evaluate.append((self._create_split(df)))
+            splits_to_evaluate.append(
+                (self._create_split(df, ["conditions_PASSION", "impetig"]))
+            )
+            splits_to_evaluate.append(
+                (self._create_split(df, ["conditions_PASSION", "impetig", "country"]))
+            )
+            splits_to_evaluate.append(
+                (
+                    self._create_split(
+                        df, ["conditions_PASSION", "impetig", "fitzpatrick"]
+                    )
+                )
+            )
+            splits_to_evaluate.append(
+                (
+                    self._create_split(
+                        df, ["conditions_PASSION", "impetig", "country", "fitzpatrick"]
+                    )
+                )
+            )
+            splits_to_evaluate.append(
+                (
+                    self._create_split(
+                        df,
+                        [
+                            "conditions_PASSION",
+                            "impetig",
+                            "country",
+                            "fitzpatrick",
+                            "sex",
+                        ],
+                    )
+                )
+            )
+
+        for split, split_name in splits_to_evaluate:
+            print(f"Split analysis of {split_name}")
+            # if not test_split:
+            df = self.df_labels.copy().merge(split, on="subject_id", how="left")
+            df.reset_index(drop=True, inplace=True)
+            # else:
+            #     df = self.df_labels
+            df["ageGroup"] = self._generate_age_group(df)
+
+            # if test_split:
+            #     passion_labels = ["impetig", "conditions_PASSION"]
+            #     # todo: fix
+            #     df = df[df["fitzpatrick"] != 1]
+            #
+            #     X = df.drop(columns=passion_labels)  # all columns except target
+            #     y = df[passion_labels]
+            #     # stratify_cols = y
+            #     interesting_cols_stratification = ["sex", "country", "fitzpatrick", "impetig", "conditions_PASSION"]
+            #     # interesting_cols_stratification = ["fitzpatrick", "impetig"]
+            #     # interesting_cols_stratification = ["fitzpatrick", "conditions_PASSION"]
+            #     stratify_cols = interesting_cols_stratification
+            #
+            #     group_sizes = df.groupby(interesting_cols_stratification).size()
+            #     rare_combinations = group_sizes[group_sizes < 2].reset_index()
+            #     rare_rows = df.merge(rare_combinations, on=interesting_cols_stratification, how="inner")
+            #     print("🔍 Records with too few samples for stratification:")
+            #     print(rare_rows)
+            #     # stratification not possible on age group, bc to less samples
+            #     # stratification also not possible on both labels at the same time I'd say
+            #
+            #     X_train, X_test, y_train, y_test = train_test_split(
+            #         X,
+            #         y,
+            #         test_size=0.2,
+            #         # stratify=y,  # This ensures stratification
+            #         stratify=stratify_cols,
+            #         random_state=42  # Optional: for reproducibility
+            #     )
+            #     # Add Split column
+            #     X_train = X_train.copy()
+            #     X_train["Split"] = "TRAIN"
+            #     X_test = X_test.copy()
+            #     X_test["Split"] = "TEST"
+            #
+            #     # Add labels back to X
+            #     train_combined = pd.concat([X_train, y_train], axis=1)
+            #     test_combined = pd.concat([X_test, y_test], axis=1)
+            #
+            #     # Combine both into one DataFrame
+            #     df = pd.concat([train_combined, test_combined], axis=0).reset_index(drop=True)
+
+            cols_to_check = interesting_cols.copy()
+            cols_to_check.append("Split")
+            df_check = df[cols_to_check]
+
+            self._analyze_distributions(cols_to_check, df)
+
+            df_train = df_check[df["Split"] == "TRAIN"]
+            df_validation = df_check[df["Split"] == "VALIDATION"]
+            df_test = df_check[df["Split"] == "TEST"]
+
+            def print_distribution(df, name, cols):
+                print(f"\n--- {name.upper()} SPLIT ---")
+                self._analyze_distributions(cols, df)
+
+            print_distribution(df_train, "train", cols_to_check)
+            print_distribution(df_validation, "validation", cols_to_check)
+            print_distribution(df_test, "test", cols_to_check)
+
+    def _analyze_distributions(self, cols_to_check, df):
+        for col in cols_to_check:
+            counts = df[col].value_counts(dropna=False).sort_index()
+            percentages = (counts / counts.sum() * 100).round(2)
+            print(f"\nDistribution for '{col}':")
+            for value, count, percent in zip(
+                counts.index, counts.values, percentages.values
+            ):
+                print(f"{value}: {count} ({percent}%)")
+
 
 if __name__ == "__main__":
     # from bias_evaluator import BiasEvaluator
@@ -444,8 +684,12 @@ if __name__ == "__main__":
     labels = [0, 1, 2, 3]
 
     evaluator = BiasEvaluator(target_names=target_names, labels=labels)
-    evaluator.run_full_evaluation(
-        analysis_name="evaluator standalone",
-        add_run_info="big_model",
-        run_detailed_evaluation=True,
-    )
+    # evaluator.run_full_evaluation(
+    #     analysis_name="evaluator standalone",
+    #     # add_run_info="big_model",
+    #     add_run_info="small_model",
+    #     run_detailed_evaluation=True,
+    # )
+
+    # evaluator.run_split_distribution_evaluation(test_split=True, create_splits=True)
+    evaluator.run_split_distribution_evaluation(test_split=False, create_splits=True)
