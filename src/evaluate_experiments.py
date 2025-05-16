@@ -51,7 +51,6 @@ my_parser.add_argument(
     "--split-nr",
     type=int,
     default=None,
-    action="store_true",
     help="If the experiment 5, index of the split file to evaluate (if ommitted, run all)",
 )
 
