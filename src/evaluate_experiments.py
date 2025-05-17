@@ -146,7 +146,7 @@ if __name__ == "__main__":
                 _config["dataset"]["passion"]["split_file"] = f"{split_name}.csv"
                 trainer = ExperimentStratifiedValidationSplit(
                     dataset_name=DatasetName.PASSION,
-                    config=config,
+                    config=_config,
                     SSL_model=model,
                     append_to_df=args.append_results,
                     log_wandb=log_wandb,

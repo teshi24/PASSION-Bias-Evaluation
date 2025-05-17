@@ -61,6 +61,7 @@ class EvaluationTrainer(ABC, object):
     ):
         self.dataset_name = dataset_name
         self.config = config
+        logger.debug(f"config: {self.config}")
         self.output_path = Path(output_path)
         self.cache_path = Path(cache_path)
         self.append_to_df = append_to_df
