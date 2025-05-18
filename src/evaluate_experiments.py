@@ -126,7 +126,7 @@ if __name__ == "__main__":
             "split_dataset__conditions_PASSION_impetig_country_fitzpatrick",
             "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex",
             "split_dataset__conditions_PASSION_impetig_fitzpatrick",
-            "split_dataset__none.csv",
+            "split_dataset__none",
         ]
 
         if args.split_nr is not None:
