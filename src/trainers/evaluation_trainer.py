@@ -70,10 +70,12 @@ class EvaluationTrainer(ABC, object):
         self.seed = config["seed"]
         fix_random_seeds(self.seed)
 
-        self.df_description = f"{self.experiment_name}_{self.dataset_name.value}"
+        self.df_description = (
+            f"{self.experiment_name}__{self.dataset_name.value}__{SSL_model}"
+        )
         self.df_name = f"{self.df_description}.csv"
         self.df_path = self.output_path / self.df_name
-        self.model_path = self.output_path / self.experiment_name
+        self.model_path = self.output_path / self.df_description
 
         # make sure the output and cache path exist
         self.output_path.mkdir(parents=True, exist_ok=True)
@@ -127,7 +129,7 @@ class EvaluationTrainer(ABC, object):
         )
         print(f"data_label_config: {data_label_config}")
         self.evaluator = BiasEvaluator(
-            passion_exp=f"{self.df_description}__{SSL_model}",
+            passion_exp=self.df_description,
             eval_data_path=self.output_path,
             dataset_dir=Path(data_path),
             meta_data_file=data_config["meta_data_file"],

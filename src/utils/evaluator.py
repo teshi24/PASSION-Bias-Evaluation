@@ -43,7 +43,10 @@ class BiasEvaluator:
         self.df_split = pd.read_csv(self.dataset_dir / split_file)
 
     def get_subgroup_metric_results_file_name(self, add_run_info):
-        return self.out_dir / f"subgroup_metric_results__{add_run_info}.csv"
+        return (
+            self.out_dir
+            / f"subgroup_metric_results_{self.passion_exp}__{add_run_info}.csv"
+        )
 
     def get_predictions_with_meta_data_file_name(self, add_run_info):
         return (
@@ -449,15 +452,17 @@ class BiasEvaluator:
         original_df,
         stratify_cols: [str] = None,
         print_unknown_stratification_issues: bool = False,
+        seed: int = 42,
     ):
+        seed = 32
         df = original_df.copy()
 
         # Filter the TRAIN data
         df_save_single_records = pd.DataFrame()
         if stratify_cols is None:
-            stratify_str = "none"
+            stratify_str = "none" + f"__seed_{seed}"
         else:
-            stratify_str = "_".join(stratify_cols)
+            stratify_str = "_".join(stratify_cols) + f"__seed_{seed}"
             print(f"filtering stratification potential issues for: {stratify_str}")
             lonely_subject_ids = []
             if "fitzpatrick" in stratify_cols:
@@ -522,18 +527,16 @@ class BiasEvaluator:
 
         # Perform the split
         X_train, X_val, y_train, y_val = train_test_split(
-            X, y, test_size=0.2, stratify=stratify_vals, random_state=42
+            X, y, test_size=0.2, stratify=stratify_vals, random_state=seed
         )
 
         # Label splits
         train_split = X_train[["subject_id"]].copy()
-        if not df_save_single_records.empty:
-            train_split = pd.concat(
-                [train_split, df_save_single_records[["subject_id"]]]
-            )
         train_split["Split"] = "TRAIN"
 
         val_split = X_val[["subject_id"]].copy()
+        if not df_save_single_records.empty:
+            val_split = pd.concat([val_split, df_save_single_records[["subject_id"]]])
         val_split["Split"] = "VALIDATION"
 
         test_split = test_df[["subject_id", "Split"]].copy()

@@ -121,12 +121,18 @@ if __name__ == "__main__":
         _config["fine_tuning"]["n_folds"] = None
         _config["fine_tuning"]["train_from_scratch"] = True
         split_names = [
-            "split_dataset__conditions_PASSION_impetig",
-            "split_dataset__conditions_PASSION_impetig_country",
-            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick",
-            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex",
-            "split_dataset__conditions_PASSION_impetig_fitzpatrick",
-            "split_dataset__none",
+            "split_dataset__conditions_PASSION_impetig__seed_32",
+            "split_dataset__conditions_PASSION_impetig_country__seed_32",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick__seed_32",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex__seed_32",
+            "split_dataset__conditions_PASSION_impetig_fitzpatrick__seed_32",
+            "split_dataset__none__seed_32",
+            # "split_dataset__conditions_PASSION_impetig",
+            # "split_dataset__conditions_PASSION_impetig_country",
+            # "split_dataset__conditions_PASSION_impetig_country_fitzpatrick",
+            # "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex",
+            # "split_dataset__conditions_PASSION_impetig_fitzpatrick",
+            # "split_dataset__none",
         ]
 
         if args.split_nr is not None:
