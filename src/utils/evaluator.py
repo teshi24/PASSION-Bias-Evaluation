@@ -7,6 +7,15 @@ from typing import Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
+from fairlearn.metrics import (
+    MetricFrame,
+    count,
+    equalized_odds_difference,
+    equalized_odds_ratio,
+    false_positive_rate,
+    true_positive_rate,
+)
+from fairlearn.reductions import EqualizedOdds
 from sklearn.metrics import (
     balanced_accuracy_score,
     classification_report,
@@ -46,6 +55,12 @@ class BiasEvaluator:
         return (
             self.out_dir
             / f"subgroup_metric_results_{self.passion_exp}__{add_run_info}.csv"
+        )
+
+    def get_fairness_metric_results_file_name(self, add_run_info):
+        return (
+            self.out_dir
+            / f"fairness_metric_results_{self.passion_exp}__{add_run_info}.csv"
         )
 
     def get_predictions_with_meta_data_file_name(self, add_run_info):
@@ -164,9 +179,25 @@ class BiasEvaluator:
         print(f"y_true: {set(y_true)}")
         print(f"y_pred: {set(y_pred)}")
 
-        cumulated = {"tp": 0, "fp": 0, "fn": 0, "tn": 0, "tpr": [], "fpr": []}
+        cumulated = {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 0,
+            "tpr": [],
+            "fpr": [],
+            "eq_odds_diffs": [],
+            "eq_odds_diff_toOveralls": [],
+            "eq_odds_diff_means": [],
+            "eq_odds_diff_mean_toOveralls": [],
+            "eq_odds_ratios": [],
+            "eq_odds_ratio_toOveralls": [],
+            "eq_odds_ratio_means": [],
+            "eq_odds_ratio_mean_toOveralls": [],
+        }
         per_class = {}
 
+        # per class
         for i, name in enumerate(self.target_names):
             tp = cm[i, i]
             fp = cm[:, i].sum() - tp
@@ -183,6 +214,14 @@ class BiasEvaluator:
             cumulated["tpr"].append(tpr)
             cumulated["fpr"].append(fpr)
 
+            print(
+                f"{name} — TP: {tp}, FP: {fp}, FN: {fn}, TN: {tn}, TPR: {tpr}, FPR: {fpr}"
+            )
+
+            # # todo: maybe add the subgroup metric calculation from fairlearn (metrics.groups with given key) to the subclass report
+            # eq_odds_diff, eq_odds_diff_mean, eq_odds_diff_mean_toOverall, eq_odds_diff_toOverall, eq_odds_ratio, eq_odds_ratio_mean, eq_odds_ratio_mean_toOverall, eq_odds_ratio_toOverall, group_metrics, metric_frame, metrics, overall_metrics = self._calc_fairness(
+            #     i, name, sensitive_features, y_pred, y_true)
+
             per_class[name] = {
                 "TP": tp,
                 "FP": fp,
@@ -190,10 +229,20 @@ class BiasEvaluator:
                 "TN": tn,
                 "TPR": tpr,
                 "FPR": fpr,
+                # "eq_odds_diff": eq_odds_diff,
+                # "eq_odds_diff_mean": eq_odds_diff_mean,
+                # "eq_odds_diff_mean_toOverall": eq_odds_diff_mean_toOverall,
+                # "eq_odds_diff_toOverall": eq_odds_diff_toOverall,
+                # "eq_odds_ratio": eq_odds_ratio,
+                # "eq_odds_ratio_mean": eq_odds_ratio_mean,
+                # "eq_odds_ratio_mean_toOverall": eq_odds_ratio_mean_toOverall,
+                # "eq_odds_ratio_toOverall": eq_odds_ratio_toOverall,
+                # "group_metrics": group_metrics,
+                # "metric_frame": metric_frame,
+                # "metrics": metrics,
+                # "overall_metrics": overall_metrics,
+                # "fairness_summary": summary,
             }
-            print(
-                f"{name} — TP: {tp}, FP: {fp}, FN: {fn}, TN: {tn}, TPR: {tpr}, FPR: {fpr}"
-            )
 
         tp_fn = cumulated["tp"] + cumulated["fn"]
         micro_tpr = round(cumulated["tp"] / tp_fn, 2) if tp_fn else 0
@@ -219,6 +268,30 @@ class BiasEvaluator:
                 "FP": cumulated["fp"],
                 "FN": cumulated["fn"],
                 "TN": cumulated["tn"],
+                # "overall_eod_worst": overall_eod_worst,
+                # "overall_eod_mean": overall_eod_mean,
+                # "overall_eod_best": overall_eod_best,
+                # "overall_eod_to_overall_worst": overall_eod_to_overall_worst,
+                # "overall_eod_to_overall_mean": overall_eod_to_overall_mean,
+                # "overall_eod_to_overall_best": overall_eod_to_overall_best,
+                # "overall_eod_mean_worst": overall_eod_mean_worst,
+                # "overall_eod_mean_mean": overall_eod_mean_mean,
+                # "overall_eod_mean_best": overall_eod_mean_best,
+                # "overall_eod_mean_to_overall_worst": overall_eod_mean_to_overall_worst,
+                # "overall_eod_mean_to_overall_mean": overall_eod_mean_to_overall_mean,
+                # "overall_eod_mean_to_overall_best": overall_eod_mean_to_overall_best,
+                # "overall_eor_worst": overall_eor_worst,
+                # "overall_eor_mean": overall_eor_mean,
+                # "overall_eor_best": overall_eor_best,
+                # "overall_eor_to_overall_worst": overall_eor_to_overall_worst,
+                # "overall_eor_to_overall_mean": overall_eor_to_overall_mean,
+                # "overall_eor_to_overall_best": overall_eor_to_overall_best,
+                # "overall_eor_mean_worst": overall_eor_mean_worst,
+                # "overall_eor_mean_mean": overall_eor_mean_mean,
+                # "overall_eor_mean_best": overall_eor_mean_best,
+                # "overall_eor_mean_to_overall_worst": overall_eor_mean_to_overall_worst,
+                # "overall_eor_mean_to_overall_mean": overall_eor_mean_to_overall_mean,
+                # "overall_eor_mean_to_overall_best": overall_eor_mean_to_overall_best,
             },
             "balancedAcc": balanced_accuracy_score(y_true, y_pred),
         }
@@ -241,6 +314,17 @@ class BiasEvaluator:
             )
 
         print(
+            f"********************* FairLearn Evaluation - {analysis_name} *********************"
+        )
+        y_true = df["targets"]
+        y_pred = df["predictions"]
+        # todo: fix ageGroup
+        # sensitive_features = df[["sex", "fitzpatrick", "country", "ageGroup"]]
+        sensitive_features = df[["sex", "fitzpatrick", "country"]]
+
+        self.print_fairlearn_output(sensitive_features, y_pred, y_true)
+
+        print(
             f"********************* Overall Evaluation - {analysis_name} *********************"
         )
         y_true = df["targets"]
@@ -255,7 +339,418 @@ class BiasEvaluator:
             grouping_columns = ["fitzpatrick", "sex", "ageGroup", "country"]
             self._detailed_evaluation(df, grouping_columns, add_run_info)
 
+    def fairlearn_output(self, sensitive_features, y_pred, y_true):
+        cumulated = {
+            "eq_odds_diffs": [],
+            "eq_odds_diff_toOveralls": [],
+            "eq_odds_diff_means": [],
+            "eq_odds_diff_mean_toOveralls": [],
+            "eq_odds_ratios": [],
+            "eq_odds_ratio_toOveralls": [],
+            "eq_odds_ratio_means": [],
+            "eq_odds_ratio_mean_toOveralls": [],
+        }
+        per_class = {}
+
+        for i, name in enumerate(self.target_names):
+            (
+                eq_odds_diff,
+                eq_odds_diff_mean,
+                eq_odds_diff_mean_toOverall,
+                eq_odds_diff_toOverall,
+                eq_odds_ratio,
+                eq_odds_ratio_mean,
+                eq_odds_ratio_mean_toOverall,
+                eq_odds_ratio_toOverall,
+                group_metrics,
+                metric_frame,
+                metrics,
+                overall_metrics,
+            ) = self._calc_fairness(i, name, sensitive_features, y_pred, y_true)
+
+            cumulated["eq_odds_diffs"].append(eq_odds_diff)
+            cumulated["eq_odds_diff_toOveralls"].append(eq_odds_diff_toOverall)
+            cumulated["eq_odds_diff_means"].append(eq_odds_diff_mean)
+            cumulated["eq_odds_diff_mean_toOveralls"].append(
+                eq_odds_diff_mean_toOverall
+            )
+            cumulated["eq_odds_ratios"].append(eq_odds_ratio)
+            cumulated["eq_odds_ratio_toOveralls"].append(eq_odds_ratio_toOverall)
+            cumulated["eq_odds_ratio_means"].append(eq_odds_ratio_mean)
+            cumulated["eq_odds_ratio_mean_toOveralls"].append(
+                eq_odds_ratio_mean_toOverall
+            )
+
+            summary = {}
+            for metric_name in metrics.keys():
+                max_val = group_metrics[metric_name].max()
+                max_group = group_metrics[metric_name].idxmax()
+                min_val = group_metrics[metric_name].min()
+                min_group = group_metrics[metric_name].idxmin()
+                diff = metric_frame.difference()[metric_name]
+                ratio = metric_frame.ratio()[metric_name]
+
+                summary[metric_name] = {
+                    "max": max_val,
+                    "max_group": max_group,
+                    "min": min_val,
+                    "min_group": min_group,
+                    "difference": diff,
+                    "ratio": ratio,
+                }
+
+            # Convert the MultiIndex to tuples of native Python types to fix fitzpatrick
+            def convert_index_value(val):
+                if isinstance(val, (np.integer, np.int64, np.int32)):
+                    return int(val)
+                return val
+
+            if isinstance(group_metrics.index, pd.MultiIndex):
+                group_metrics.index = group_metrics.index.map(
+                    lambda tup: tuple(convert_index_value(i) for i in tup)
+                )
+            else:
+                group_metrics.index = group_metrics.index.map(convert_index_value)
+
+            per_class[name] = {
+                "eq_odds_diff": eq_odds_diff,
+                "eq_odds_diff_mean": eq_odds_diff_mean,
+                "eq_odds_diff_mean_toOverall": eq_odds_diff_mean_toOverall,
+                "eq_odds_diff_toOverall": eq_odds_diff_toOverall,
+                "eq_odds_ratio": eq_odds_ratio,
+                "eq_odds_ratio_mean": eq_odds_ratio_mean,
+                "eq_odds_ratio_mean_toOverall": eq_odds_ratio_mean_toOverall,
+                "eq_odds_ratio_toOverall": eq_odds_ratio_toOverall,
+                # "metric_frame": metric_frame,
+                "metrics": list(metrics.keys()),
+                "overall_metrics": overall_metrics.to_dict(),
+                "group_wise_metric_results": group_metrics.to_dict(orient="index"),
+                "fairness_summary": summary,
+            }
+
+        overall_eod_worst = max(cumulated["eq_odds_diffs"])
+        overall_eod_mean = sum(cumulated["eq_odds_diffs"]) / len(
+            cumulated["eq_odds_diffs"]
+        )
+        overall_eod_best = min(cumulated["eq_odds_diffs"])
+        overall_eod_to_overall_worst = max(cumulated["eq_odds_diff_toOveralls"])
+        overall_eod_to_overall_mean = sum(cumulated["eq_odds_diff_toOveralls"]) / len(
+            cumulated["eq_odds_diff_toOveralls"]
+        )
+        overall_eod_to_overall_best = min(cumulated["eq_odds_diff_toOveralls"])
+        overall_eod_mean_worst = max(cumulated["eq_odds_diff_means"])
+        overall_eod_mean_mean = sum(cumulated["eq_odds_diff_means"]) / len(
+            cumulated["eq_odds_diff_means"]
+        )
+        overall_eod_mean_best = min(cumulated["eq_odds_diff_means"])
+        overall_eod_mean_to_overall_worst = max(
+            cumulated["eq_odds_diff_mean_toOveralls"]
+        )
+        overall_eod_mean_to_overall_mean = sum(
+            cumulated["eq_odds_diff_mean_toOveralls"]
+        ) / len(cumulated["eq_odds_diff_mean_toOveralls"])
+        overall_eod_mean_to_overall_best = min(
+            cumulated["eq_odds_diff_mean_toOveralls"]
+        )
+        overall_eor_worst = min(cumulated["eq_odds_ratios"])
+        overall_eor_mean = sum(cumulated["eq_odds_ratios"]) / len(
+            cumulated["eq_odds_ratios"]
+        )
+        overall_eor_best = max(cumulated["eq_odds_ratios"])
+        overall_eor_to_overall_worst = min(cumulated["eq_odds_ratio_toOveralls"])
+        overall_eor_to_overall_mean = sum(cumulated["eq_odds_ratio_toOveralls"]) / len(
+            cumulated["eq_odds_ratio_toOveralls"]
+        )
+        overall_eor_to_overall_best = max(cumulated["eq_odds_ratio_toOveralls"])
+        overall_eor_mean_worst = min(cumulated["eq_odds_ratio_means"])
+        overall_eor_mean_mean = sum(cumulated["eq_odds_ratio_means"]) / len(
+            cumulated["eq_odds_ratio_means"]
+        )
+        overall_eor_mean_best = max(cumulated["eq_odds_ratio_means"])
+        overall_eor_mean_to_overall_worst = min(
+            cumulated["eq_odds_ratio_mean_toOveralls"]
+        )
+        overall_eor_mean_to_overall_mean = sum(
+            cumulated["eq_odds_ratio_mean_toOveralls"]
+        ) / len(cumulated["eq_odds_ratio_mean_toOveralls"])
+        overall_eor_mean_to_overall_best = max(
+            cumulated["eq_odds_ratio_mean_toOveralls"]
+        )
+
+        # print(f"overall_eod_worst: {overall_eod_worst}")
+        # print(f"overall_eod_mean: {overall_eod_mean}")
+        # print(f"overall_eod_best: {overall_eod_best}")
+        # print()
+        # print(f"overall_eod_to_overall_worst: {overall_eod_to_overall_worst}")
+        # print(f"overall_eod_to_overall_mean: {overall_eod_to_overall_mean}")
+        # print(f"overall_eod_to_overall_best: {overall_eod_to_overall_best}")
+        # print()
+        # print(f"overall_eod_mean_worst: {overall_eod_mean_worst}")
+        # print(f"overall_eod_mean_mean: {overall_eod_mean_mean}")
+        # print(f"overall_eod_mean_best: {overall_eod_mean_best}")
+        # print()
+        # print(f"overall_eod_mean_to_overall_worst: {overall_eod_mean_to_overall_worst}")
+        # print(f"overall_eod_mean_to_overall_mean: {overall_eod_mean_to_overall_mean}")
+        # print(f"overall_eod_mean_to_overall_best: {overall_eod_mean_to_overall_best}")
+        # print()
+        # print(f"overall_eor_worst: {overall_eor_worst}")
+        # print(f"overall_eor_mean: {overall_eor_mean}")
+        # print(f"overall_eor_best: {overall_eor_best}")
+        # print()
+        # print(f"overall_eor_to_overall_worst: {overall_eor_to_overall_worst}")
+        # print(f"overall_eor_to_overall_mean: {overall_eor_to_overall_mean}")
+        # print(f"overall_eor_to_overall_best: {overall_eor_to_overall_best}")
+        # print()
+        # print(f"overall_eor_mean_worst: {overall_eor_mean_worst}")
+        # print(f"overall_eor_mean_mean: {overall_eor_mean_mean}")
+        # print(f"overall_eor_mean_best: {overall_eor_mean_best}")
+        # print()
+        # print(f"overall_eor_mean_to_overall_worst: {overall_eor_mean_to_overall_worst}")
+        # print(f"overall_eor_mean_to_overall_mean: {overall_eor_mean_to_overall_mean}")
+        # print(f"overall_eor_mean_to_overall_best: {overall_eor_mean_to_overall_best}")
+        # print()
+
+        results = {
+            #  "cumulated": {
+            "overall_eod_worst": overall_eod_worst,
+            "overall_eod_mean": overall_eod_mean,
+            "overall_eod_best": overall_eod_best,
+            "overall_eod_to_overall_worst": overall_eod_to_overall_worst,
+            "overall_eod_to_overall_mean": overall_eod_to_overall_mean,
+            "overall_eod_to_overall_best": overall_eod_to_overall_best,
+            "overall_eod_mean_worst": overall_eod_mean_worst,
+            "overall_eod_mean_mean": overall_eod_mean_mean,
+            "overall_eod_mean_best": overall_eod_mean_best,
+            "overall_eod_mean_to_overall_worst": overall_eod_mean_to_overall_worst,
+            "overall_eod_mean_to_overall_mean": overall_eod_mean_to_overall_mean,
+            "overall_eod_mean_to_overall_best": overall_eod_mean_to_overall_best,
+            "overall_eor_worst": overall_eor_worst,
+            "overall_eor_mean": overall_eor_mean,
+            "overall_eor_best": overall_eor_best,
+            "overall_eor_to_overall_worst": overall_eor_to_overall_worst,
+            "overall_eor_to_overall_mean": overall_eor_to_overall_mean,
+            "overall_eor_to_overall_best": overall_eor_to_overall_best,
+            "overall_eor_mean_worst": overall_eor_mean_worst,
+            "overall_eor_mean_mean": overall_eor_mean_mean,
+            "overall_eor_mean_best": overall_eor_mean_best,
+            "overall_eor_mean_to_overall_worst": overall_eor_mean_to_overall_worst,
+            "overall_eor_mean_to_overall_mean": overall_eor_mean_to_overall_mean,
+            "overall_eor_mean_to_overall_best": overall_eor_mean_to_overall_best,
+            #            },
+            "per_class": per_class,
+        }
+
+        # print(f'fairlearn_output: {results}')
+        return results
+
+    def print_fairlearn_output(self, sensitive_features, y_pred, y_true):
+        eq_odds_diffs = []
+        eq_odds_diff_toOveralls = []
+        eq_odds_diff_means = []
+        eq_odds_diff_mean_toOveralls = []
+        eq_odds_ratios = []
+        eq_odds_ratio_toOveralls = []
+        eq_odds_ratio_means = []
+        eq_odds_ratio_mean_toOveralls = []
+
+        for i, name in enumerate(self.target_names):
+            (
+                eq_odds_diff,
+                eq_odds_diff_mean,
+                eq_odds_diff_mean_toOverall,
+                eq_odds_diff_toOverall,
+                eq_odds_ratio,
+                eq_odds_ratio_mean,
+                eq_odds_ratio_mean_toOverall,
+                eq_odds_ratio_toOverall,
+                group_metrics,
+                metric_frame,
+                metrics,
+                overall_metrics,
+            ) = self._calc_fairness(i, name, sensitive_features, y_pred, y_true)
+
+            eq_odds_diffs.append(eq_odds_diff)
+            eq_odds_diff_toOveralls.append(eq_odds_diff_toOverall)
+            eq_odds_diff_means.append(eq_odds_diff_mean)
+            eq_odds_diff_mean_toOveralls.append(eq_odds_diff_mean_toOverall)
+            eq_odds_ratios.append(eq_odds_ratio)
+            eq_odds_ratio_toOveralls.append(eq_odds_ratio_toOverall)
+            eq_odds_ratio_means.append(eq_odds_ratio_mean)
+            eq_odds_ratio_mean_toOveralls.append(eq_odds_ratio_mean_toOverall)
+
+            print("Fairness Metrics:")
+            print(f"Equalized Odds Difference: {eq_odds_diff}")
+            print(f"Equalized Odds Difference To Overall: {eq_odds_diff_toOverall}")
+            print(f"Equalized Odds Difference Mean: {eq_odds_diff_mean}")
+            print(
+                f"Equalized Odds Difference Mean To Overall: {eq_odds_diff_mean_toOverall}"
+            )
+            print(f"Equalized Odds Ratio: {eq_odds_ratio}")
+            print(f"Equalized Odds Ratio To Overall: {eq_odds_ratio_toOverall}")
+            print(f"Equalized Odds Ratio Mean: {eq_odds_ratio_mean}")
+            print(
+                f"Equalized Odds Ratio Mean To Overall: {eq_odds_ratio_mean_toOverall}"
+            )
+            print("Overall metrics:")
+            print(overall_metrics)
+
+            print("=== Fairness Summary Per Metric ===")
+            for metric_name in metrics.keys():
+                max_val = metric_frame.by_group[metric_name].max()
+                max_group = metric_frame.by_group[metric_name].idxmax()
+
+                min_val = metric_frame.by_group[metric_name].min()
+                min_group = metric_frame.by_group[metric_name].idxmin()
+
+                diff = metric_frame.difference()[metric_name]
+                ratio = metric_frame.ratio()[metric_name]
+
+                print(
+                    f"{metric_name}: \n"
+                    f"max        = {max_val:.6f} (Group: {max_group}), \n"
+                    f"min        = {min_val:.6f} (Group: {min_group}), \n"
+                    f"difference = {diff:.6f}, \n"
+                    f"ratio      = {ratio:.6f}"
+                )
+            print("Group-wise Metrics:")
+            print(group_metrics)
+
+        print(f"overall eod worst: {max(eq_odds_diffs)}")
+        print(f"overall eod mean: {sum(eq_odds_diffs) / len(eq_odds_diffs)}")
+        print(f"overall eod best: {min(eq_odds_diffs)}")
+        print()
+        print(f"overall eod to overall worst: {max(eq_odds_diff_toOveralls)}")
+        print(
+            f"overall eod to overall mean: {sum(eq_odds_diff_toOveralls) / len(eq_odds_diff_toOveralls)}"
+        )
+        print(f"overall eod to overall best: {min(eq_odds_diff_toOveralls)}")
+        print()
+        print(f"overall eod mean worst: {max(eq_odds_diff_means)}")
+        print(
+            f"overall eod mean mean: {sum(eq_odds_diff_means) / len(eq_odds_diff_means)}"
+        )
+        print(f"overall eod mean best: {min(eq_odds_diff_means)}")
+        print()
+        print(f"overall eod mean to overall worst: {max(eq_odds_diff_mean_toOveralls)}")
+        print(
+            f"overall eod mean to overall mean: {sum(eq_odds_diff_mean_toOveralls) / len(eq_odds_diff_mean_toOveralls)}"
+        )
+        print(f"overall eod mean to overall best: {min(eq_odds_diff_mean_toOveralls)}")
+        print()
+        print()
+        print(f"overall eor worst: {min(eq_odds_ratios)}")
+        print(f"overall eor mean: {sum(eq_odds_ratios) / len(eq_odds_ratios)}")
+        print(f"overall eor best: {max(eq_odds_ratios)}")
+        print()
+        print(f"overall eor to overall worst: {min(eq_odds_ratio_toOveralls)}")
+        print(
+            f"overall eor to overall mean: {sum(eq_odds_ratio_toOveralls) / len(eq_odds_ratio_toOveralls)}"
+        )
+        print(f"overall eor to overall best: {max(eq_odds_ratio_toOveralls)}")
+        print()
+        print(f"overall eor mean worst: {min(eq_odds_ratio_means)}")
+        print(
+            f"overall eor mean mean: {sum(eq_odds_ratio_means) / len(eq_odds_ratio_means)}"
+        )
+        print(f"overall eor mean best: {max(eq_odds_ratio_means)}")
+        print()
+        print(
+            f"overall eor mean to overall worst: {min(eq_odds_ratio_mean_toOveralls)}"
+        )
+        print(
+            f"overall eor mean to overall mean: {sum(eq_odds_ratio_mean_toOveralls) / len(eq_odds_ratio_mean_toOveralls)}"
+        )
+        print(f"overall eor mean to overall best: {max(eq_odds_ratio_mean_toOveralls)}")
+        print()
+        print()
+
+    def _calc_fairness(self, i, name, sensitive_features, y_pred, y_true):
+        print(
+            f"i: {i}, name: {name}; sensitive_features: {list(sensitive_features.columns)}"
+        )
+        y_true_bin = (y_true == i).astype(int)
+        y_pred_bin = (y_pred == i).astype(int)
+        eq_odds_diff = equalized_odds_difference(
+            y_true=y_true_bin, y_pred=y_pred_bin, sensitive_features=sensitive_features
+        )
+        eq_odds_diff_mean = equalized_odds_difference(
+            y_true=y_true_bin,
+            y_pred=y_pred_bin,
+            sensitive_features=sensitive_features,
+            agg="mean",
+        )
+        eq_odds_diff_toOverall = equalized_odds_difference(
+            y_true=y_true_bin,
+            y_pred=y_pred_bin,
+            sensitive_features=sensitive_features,
+            method="to_overall",
+        )
+        eq_odds_diff_mean_toOverall = equalized_odds_difference(
+            y_true=y_true_bin,
+            y_pred=y_pred_bin,
+            sensitive_features=sensitive_features,
+            agg="mean",
+            method="to_overall",
+        )
+        eq_odds_ratio = equalized_odds_ratio(
+            y_true=y_true_bin, y_pred=y_pred_bin, sensitive_features=sensitive_features
+        )
+        eq_odds_ratio_mean = equalized_odds_ratio(
+            y_true=y_true_bin,
+            y_pred=y_pred_bin,
+            sensitive_features=sensitive_features,
+            agg="mean",
+        )
+        eq_odds_ratio_toOverall = equalized_odds_ratio(
+            y_true=y_true_bin,
+            y_pred=y_pred_bin,
+            sensitive_features=sensitive_features,
+            method="to_overall",
+        )
+        eq_odds_ratio_mean_toOverall = equalized_odds_ratio(
+            y_true=y_true_bin,
+            y_pred=y_pred_bin,
+            sensitive_features=sensitive_features,
+            method="to_overall",
+            agg="mean",
+        )
+        metrics = {
+            "true_positive_rate": true_positive_rate,
+            "false_positive_rate": false_positive_rate,
+            "support": count,
+        }
+        metric_frame = MetricFrame(
+            metrics=metrics,
+            y_true=y_true_bin,
+            y_pred=y_pred_bin,
+            sensitive_features=sensitive_features,
+        )
+        overall_metrics = metric_frame.overall
+        group_metrics = metric_frame.by_group
+        return (
+            eq_odds_diff,
+            eq_odds_diff_mean,
+            eq_odds_diff_mean_toOverall,
+            eq_odds_diff_toOverall,
+            eq_odds_ratio,
+            eq_odds_ratio_mean,
+            eq_odds_ratio_mean_toOverall,
+            eq_odds_ratio_toOverall,
+            group_metrics,
+            metric_frame,
+            metrics,
+            overall_metrics,
+        )
+
     def _generate_age_group(self, df):
+        # bins = range(0, 106, 15)
+        # return pd.cut(
+        #     df["age"],
+        #     bins=bins,
+        #     labels=[f"{i:02}-{i + 14:02}" for i in bins[:-1]],
+        #     right=False,
+        # )
+        #  todo: consider to add a flag
         bins = range(0, 101, 5)
         return pd.cut(
             df["age"],
@@ -272,6 +767,7 @@ class BiasEvaluator:
         results = []
         result_keys = None
 
+        # per subgroup
         for group_values, _df in grouped:
             if isinstance(group_values, str):
                 group_values = (group_values,)  # Ensure tuple
@@ -293,9 +789,8 @@ class BiasEvaluator:
             )
             print("~" * 20 + f" {group_info}, Support: {support} " + "~" * 20)
 
-            y_true = data["targets"][_df.index.values]
-            y_pred = data["predictions"][_df.index.values]
-
+            y_true = data.loc[_df.index, ["targets"]]
+            y_pred = data.loc[_df.index, ["predictions"]]
             metrics = self._calculate_metrics(y_pred, y_true)
 
             result = {
@@ -314,9 +809,37 @@ class BiasEvaluator:
             if not result_keys:
                 result_keys = list(result.keys())
 
+            for k, v in metrics["cumulated"].items():
+                if k not in ("TP", "FP", "FN", "TN"):  # already added
+                    result[k] = v
+
             # Add per-class metrics
             for class_name, values in metrics["per_class"].items():
                 for metric_name, metric_val in values.items():
+                    # Skip MetricFrame or large objects like group_metrics, metric_frame if not serializing to CSV
+                    if metric_name in (
+                        "group_metrics",
+                        "metric_frame",
+                        "metrics",
+                        "overall_metrics",
+                        "fairness_summary",
+                    ):
+                        continue
+                    if "fairness_summary" in values:
+                        for metric_name, summary in values["fairness_summary"].items():
+                            result[
+                                f"{class_name}_fairnessSummary_{metric_name}_max"
+                            ] = summary["max"]
+                            result[
+                                f"{class_name}_fairnessSummary_{metric_name}_min"
+                            ] = summary["min"]
+                            result[
+                                f"{class_name}_fairnessSummary_{metric_name}_difference"
+                            ] = summary["difference"]
+                            result[
+                                f"{class_name}_fairnessSummary_{metric_name}_ratio"
+                            ] = summary["ratio"]
+                        continue
                     result[f"{class_name}_{metric_name}"] = metric_val
 
             results.append(result)
@@ -330,6 +853,7 @@ class BiasEvaluator:
 
     def _detailed_evaluation(self, data, grouping_columns, add_run_info):
         dfs = []
+        fairness_dfs = []
         group_by_key = "GroupBy"
         report = {}
         result_keys = None
@@ -342,6 +866,14 @@ class BiasEvaluator:
 
             macro_tpr_avg = subgroup_df["Macro-TPR"].mean()
             macro_fpr_avg = subgroup_df["Macro-FPR"].mean()
+
+            fairness_group_df = self.fairlearn_output(
+                sensitive_features=data[group],
+                y_pred=data["predictions"],
+                y_true=data["targets"],
+            )
+            fairness_group_df[group_by_key] = ", ".join(group)
+            fairness_dfs.append(fairness_group_df)
 
             privileged = []
             underprivileged = []
@@ -411,6 +943,14 @@ class BiasEvaluator:
                     "no support": no_support,
                 },
             }
+
+            # # todo: this makes much more sense to do it here... gather output and add to
+            # print(f"group - detailed_eval: {group}")
+            # print(f"data[group] - detailed_eval: {data[group]}")
+            # self.print_fairlearn_output(sensitive_features=data[group],
+            #                             y_pred=data["predictions"],
+            #                             y_true=data["targets"])
+
         final_df = pd.concat(dfs, ignore_index=True)
         all_other_cols = list(set(final_df.columns) - set(result_keys) - {group_by_key})
         all_other_cols.sort()
@@ -423,6 +963,28 @@ class BiasEvaluator:
             columns=ordered_cols,
             index=False,
         )
+
+        all_general_cols = [
+            k for k in fairness_dfs[0].keys() if k != "per_class" and k != group_by_key
+        ]
+
+        fairness_dfs = [
+            self.flatten_fairlearn_output_to_df(fairness_df)
+            for fairness_df in fairness_dfs
+        ]
+        fairness_df = pd.concat(fairness_dfs, ignore_index=True)
+
+        all_other_cols = list(
+            set(fairness_df.columns) - set(result_keys) - {group_by_key}
+        )
+
+        ordered_fairness_cols = [group_by_key, *all_general_cols, *all_other_cols]
+        fairness_df.to_csv(
+            self.get_fairness_metric_results_file_name(add_run_info),
+            columns=ordered_fairness_cols,
+            index=False,
+        )
+
         # Print privilege report
         for group_key, group_report in report.items():
             print(f"\n=== Grouping: {group_key} ===")
@@ -438,6 +1000,30 @@ class BiasEvaluator:
                         print(f"  {label}")
                 if len(entries) == 0:
                     print("  -")
+
+    def flatten_fairlearn_output_to_df(self, results: dict) -> dict:
+        flat = {}
+        # Copy top-level overall metrics
+        for k, v in results.items():
+            if k != "per_class":
+                flat[k] = v
+        # Flatten per_class section
+        for class_label, metrics in results.get("per_class", {}).items():
+            prefix = f"class_{class_label}"
+
+            for mk, mv in metrics.items():
+                if mk == "overall_metrics":
+                    for omk, omv in mv.items():
+                        flat[f"{prefix}_overall_{omk}"] = omv
+                elif mk == "group_wise_metric_results":
+                    flat[f"{prefix}_group_wise_metric_results"] = mv
+                elif mk == "metrics":
+                    flat[f"{prefix}_metrics"] = ",".join(mv)
+                elif mk == "fairness_summary":
+                    flat[f"{prefix}_summary"] = mv
+                else:
+                    flat[f"{prefix}_{mk}"] = mv
+        return pd.DataFrame([flat])
 
     def _get_all_group_combinations(self, grouping_columns):
         group_combinations = []
@@ -532,11 +1118,13 @@ class BiasEvaluator:
 
         # Label splits
         train_split = X_train[["subject_id"]].copy()
+        if not df_save_single_records.empty:
+            train_split = pd.concat(
+                [train_split, df_save_single_records[["subject_id"]]]
+            )
         train_split["Split"] = "TRAIN"
 
         val_split = X_val[["subject_id"]].copy()
-        if not df_save_single_records.empty:
-            val_split = pd.concat([val_split, df_save_single_records[["subject_id"]]])
         val_split["Split"] = "VALIDATION"
 
         test_split = test_df[["subject_id", "Split"]].copy()
@@ -682,17 +1270,53 @@ class BiasEvaluator:
 
 
 if __name__ == "__main__":
+    import sys
+
+    class Tee:
+        def __init__(self, filename, mode="a"):
+            self.terminal = sys.stdout
+            self.log = open(filename, mode, encoding="utf-8")
+
+        def write(self, message):
+            self.terminal.write(message)
+            self.log.write(message)
+
+        def flush(self):
+            self.terminal.flush()
+            self.log.flush()
+
+    sys.stdout = Tee("bias_evaluation.log", mode="w")  # 'w' overwrites on each run
+    sys.stderr = sys.stdout  # optional: redirect errors too
+
     # from bias_evaluator import BiasEvaluator
     target_names = ["Eczema", "Fungal", "Others", "Scabies"]
     labels = [0, 1, 2, 3]
 
-    evaluator = BiasEvaluator(target_names=target_names, labels=labels)
-    # evaluator.run_full_evaluation(
-    #     analysis_name="evaluator standalone",
-    #     # add_run_info="big_model",
-    #     add_run_info="small_model",
-    #     run_detailed_evaluation=True,
-    # )
+    for split in [
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig__seed_32__passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country__seed_32__passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick__seed_32__passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex__seed_32__passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex_passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick__seed_32__passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick_passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_passion",  # unmatched data eerror
+        "experiment_stratified_validation_split_conditions__split_dataset__none__seed_32__passion",
+        "experiment_stratified_validation_split_conditions__split_dataset__none_passion",
+        "experiment_standard_split_conditions_passion",
+    ]:
+        print(f"experiment {split}")
+        evaluator = BiasEvaluator(
+            passion_exp=f"{split}", target_names=target_names, labels=labels
+        )
+        evaluator.run_full_evaluation(
+            analysis_name="evaluator standalone",
+            # add_run_info="big_model",
+            add_run_info="imagenet_tiny",
+            run_detailed_evaluation=True,
+        )
 
     # evaluator.run_split_distribution_evaluation(test_split=True, create_splits=True)
-    evaluator.run_split_distribution_evaluation(test_split=False, create_splits=True)
+    # evaluator.run_split_distribution_evaluation(test_split=False, create_splits=True)

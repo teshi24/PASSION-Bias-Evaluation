@@ -25,3 +25,4 @@ randomname
 wandb
 torch-lr-finder
 loguru
+fairlearn
