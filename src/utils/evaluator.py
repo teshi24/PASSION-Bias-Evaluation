@@ -1,10 +1,12 @@
 # bias_evaluator.py
 import itertools
+import math
 import os
 import re
 from pathlib import Path
 from typing import Optional, Sequence, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from fairlearn.metrics import (
@@ -54,13 +56,15 @@ class BiasEvaluator:
     def get_subgroup_metric_results_file_name(self, add_run_info):
         return (
             self.out_dir
-            / f"subgroup_metric_results_{self.passion_exp}__{add_run_info}.csv"
+            # / f"subgroup_metric_results_{self.passion_exp}__{add_run_info}.csv"
+            / f"new_subgroup_metric_results_{self.passion_exp}__{add_run_info}.csv"
         )
 
     def get_fairness_metric_results_file_name(self, add_run_info):
         return (
             self.out_dir
-            / f"fairness_metric_results_{self.passion_exp}__{add_run_info}.csv"
+            # / f"fairness_metric_results_{self.passion_exp}__{add_run_info}.csv"
+            / f"new_fairness_metric_results_{self.passion_exp}__{add_run_info}.csv"
         )
 
     def get_predictions_with_meta_data_file_name(self, add_run_info):
@@ -313,16 +317,16 @@ class BiasEvaluator:
                 df_results=data, add_run_info=add_run_info
             )
 
-        print(
-            f"********************* FairLearn Evaluation - {analysis_name} *********************"
-        )
-        y_true = df["targets"]
-        y_pred = df["predictions"]
-        # todo: fix ageGroup
-        # sensitive_features = df[["sex", "fitzpatrick", "country", "ageGroup"]]
-        sensitive_features = df[["sex", "fitzpatrick", "country"]]
-
-        self.print_fairlearn_output(sensitive_features, y_pred, y_true)
+        # print(
+        #     f"********************* FairLearn Evaluation - {analysis_name} *********************"
+        # )
+        # y_true = df["targets"]
+        # y_pred = df["predictions"]
+        # # todo: fix ageGroup
+        # # sensitive_features = df[["sex", "fitzpatrick", "country", "ageGroup"]]
+        # sensitive_features = df[["sex", "fitzpatrick", "country"]]
+        #
+        # self.print_fairlearn_output(sensitive_features, y_pred, y_true)
 
         print(
             f"********************* Overall Evaluation - {analysis_name} *********************"
@@ -381,6 +385,23 @@ class BiasEvaluator:
                 eq_odds_ratio_mean_toOverall
             )
 
+            print("Fairness Metrics:")
+            print(f"Equalized Odds Difference: {eq_odds_diff}")
+            print(f"Equalized Odds Difference To Overall: {eq_odds_diff_toOverall}")
+            print(f"Equalized Odds Difference Mean: {eq_odds_diff_mean}")
+            print(
+                f"Equalized Odds Difference Mean To Overall: {eq_odds_diff_mean_toOverall}"
+            )
+            print(f"Equalized Odds Ratio: {eq_odds_ratio}")
+            print(f"Equalized Odds Ratio To Overall: {eq_odds_ratio_toOverall}")
+            print(f"Equalized Odds Ratio Mean: {eq_odds_ratio_mean}")
+            print(
+                f"Equalized Odds Ratio Mean To Overall: {eq_odds_ratio_mean_toOverall}"
+            )
+            print("Overall metrics:")
+            print(overall_metrics)
+
+            print("Summary per metric:")
             summary = {}
             for metric_name in metrics.keys():
                 max_val = group_metrics[metric_name].max()
@@ -389,6 +410,14 @@ class BiasEvaluator:
                 min_group = group_metrics[metric_name].idxmin()
                 diff = metric_frame.difference()[metric_name]
                 ratio = metric_frame.ratio()[metric_name]
+
+                print(
+                    f"{metric_name}: \n"
+                    f"max        = {max_val:.6f} (Group: {max_group}), \n"
+                    f"min        = {min_val:.6f} (Group: {min_group}), \n"
+                    f"difference = {diff:.6f}, \n"
+                    f"ratio      = {ratio:.6f}"
+                )
 
                 summary[metric_name] = {
                     "max": max_val,
@@ -411,6 +440,9 @@ class BiasEvaluator:
                 )
             else:
                 group_metrics.index = group_metrics.index.map(convert_index_value)
+
+            print("Group-wise Metrics:")
+            print(group_metrics)
 
             per_class[name] = {
                 "eq_odds_diff": eq_odds_diff,
@@ -477,38 +509,38 @@ class BiasEvaluator:
             cumulated["eq_odds_ratio_mean_toOveralls"]
         )
 
-        # print(f"overall_eod_worst: {overall_eod_worst}")
-        # print(f"overall_eod_mean: {overall_eod_mean}")
-        # print(f"overall_eod_best: {overall_eod_best}")
-        # print()
-        # print(f"overall_eod_to_overall_worst: {overall_eod_to_overall_worst}")
-        # print(f"overall_eod_to_overall_mean: {overall_eod_to_overall_mean}")
-        # print(f"overall_eod_to_overall_best: {overall_eod_to_overall_best}")
-        # print()
-        # print(f"overall_eod_mean_worst: {overall_eod_mean_worst}")
-        # print(f"overall_eod_mean_mean: {overall_eod_mean_mean}")
-        # print(f"overall_eod_mean_best: {overall_eod_mean_best}")
-        # print()
-        # print(f"overall_eod_mean_to_overall_worst: {overall_eod_mean_to_overall_worst}")
-        # print(f"overall_eod_mean_to_overall_mean: {overall_eod_mean_to_overall_mean}")
-        # print(f"overall_eod_mean_to_overall_best: {overall_eod_mean_to_overall_best}")
-        # print()
-        # print(f"overall_eor_worst: {overall_eor_worst}")
-        # print(f"overall_eor_mean: {overall_eor_mean}")
-        # print(f"overall_eor_best: {overall_eor_best}")
-        # print()
-        # print(f"overall_eor_to_overall_worst: {overall_eor_to_overall_worst}")
-        # print(f"overall_eor_to_overall_mean: {overall_eor_to_overall_mean}")
-        # print(f"overall_eor_to_overall_best: {overall_eor_to_overall_best}")
-        # print()
-        # print(f"overall_eor_mean_worst: {overall_eor_mean_worst}")
-        # print(f"overall_eor_mean_mean: {overall_eor_mean_mean}")
-        # print(f"overall_eor_mean_best: {overall_eor_mean_best}")
-        # print()
-        # print(f"overall_eor_mean_to_overall_worst: {overall_eor_mean_to_overall_worst}")
-        # print(f"overall_eor_mean_to_overall_mean: {overall_eor_mean_to_overall_mean}")
-        # print(f"overall_eor_mean_to_overall_best: {overall_eor_mean_to_overall_best}")
-        # print()
+        print(f"overall_eod_worst: {overall_eod_worst}")
+        print(f"overall_eod_mean: {overall_eod_mean}")
+        print(f"overall_eod_best: {overall_eod_best}")
+        print()
+        print(f"overall_eod_to_overall_worst: {overall_eod_to_overall_worst}")
+        print(f"overall_eod_to_overall_mean: {overall_eod_to_overall_mean}")
+        print(f"overall_eod_to_overall_best: {overall_eod_to_overall_best}")
+        print()
+        print(f"overall_eod_mean_worst: {overall_eod_mean_worst}")
+        print(f"overall_eod_mean_mean: {overall_eod_mean_mean}")
+        print(f"overall_eod_mean_best: {overall_eod_mean_best}")
+        print()
+        print(f"overall_eod_mean_to_overall_worst: {overall_eod_mean_to_overall_worst}")
+        print(f"overall_eod_mean_to_overall_mean: {overall_eod_mean_to_overall_mean}")
+        print(f"overall_eod_mean_to_overall_best: {overall_eod_mean_to_overall_best}")
+        print()
+        print(f"overall_eor_worst: {overall_eor_worst}")
+        print(f"overall_eor_mean: {overall_eor_mean}")
+        print(f"overall_eor_best: {overall_eor_best}")
+        print()
+        print(f"overall_eor_to_overall_worst: {overall_eor_to_overall_worst}")
+        print(f"overall_eor_to_overall_mean: {overall_eor_to_overall_mean}")
+        print(f"overall_eor_to_overall_best: {overall_eor_to_overall_best}")
+        print()
+        print(f"overall_eor_mean_worst: {overall_eor_mean_worst}")
+        print(f"overall_eor_mean_mean: {overall_eor_mean_mean}")
+        print(f"overall_eor_mean_best: {overall_eor_mean_best}")
+        print()
+        print(f"overall_eor_mean_to_overall_worst: {overall_eor_mean_to_overall_worst}")
+        print(f"overall_eor_mean_to_overall_mean: {overall_eor_mean_to_overall_mean}")
+        print(f"overall_eor_mean_to_overall_best: {overall_eor_mean_to_overall_best}")
+        print()
 
         results = {
             #  "cumulated": {
@@ -727,6 +759,7 @@ class BiasEvaluator:
         )
         overall_metrics = metric_frame.overall
         group_metrics = metric_frame.by_group
+
         return (
             eq_odds_diff,
             eq_odds_diff_mean,
@@ -975,9 +1008,12 @@ class BiasEvaluator:
         fairness_df = pd.concat(fairness_dfs, ignore_index=True)
 
         all_other_cols = list(
-            set(fairness_df.columns) - set(result_keys) - {group_by_key}
+            set(fairness_df.columns)
+            - set(result_keys)
+            - set(all_general_cols)
+            - {group_by_key}
         )
-
+        all_other_cols.sort()
         ordered_fairness_cols = [group_by_key, *all_general_cols, *all_other_cols]
         fairness_df.to_csv(
             self.get_fairness_metric_results_file_name(add_run_info),
@@ -1189,6 +1225,10 @@ class BiasEvaluator:
                 )
             )
 
+        # Ensure output directory
+        output_dir = "distribution_outputs"
+        os.makedirs(output_dir, exist_ok=True)
+
         for split, split_name in splits_to_evaluate:
             print(f"Split analysis of {split_name}")
             # if not test_split:
@@ -1244,21 +1284,28 @@ class BiasEvaluator:
             cols_to_check.append("Split")
             df_check = df[cols_to_check]
 
-            self._analyze_distributions(cols_to_check, df)
+            self._analyze_distributions(cols_to_check, df, output_dir, split_name)
 
             df_train = df_check[df["Split"] == "TRAIN"]
             df_validation = df_check[df["Split"] == "VALIDATION"]
             df_test = df_check[df["Split"] == "TEST"]
 
-            def print_distribution(df, name, cols):
+            def print_distribution(df_split, name, cols):
                 print(f"\n--- {name.upper()} SPLIT ---")
-                self._analyze_distributions(cols, df)
+                if df_split.empty:
+                    print(f"Warning: {name.upper()} SPLIT is empty. Skipping.")
+                    return
+                self._analyze_distributions(
+                    cols, df_split, output_dir, f"{split_name}_{name}"
+                )
 
             print_distribution(df_train, "train", cols_to_check)
             print_distribution(df_validation, "validation", cols_to_check)
             print_distribution(df_test, "test", cols_to_check)
 
-    def _analyze_distributions(self, cols_to_check, df):
+    def _analyze_distributions(self, cols_to_check, df, output_dir=None, name=""):
+        results = []
+        all_counts_dict = {}
         for col in cols_to_check:
             counts = df[col].value_counts(dropna=False).sort_index()
             percentages = (counts / counts.sum() * 100).round(2)
@@ -1267,6 +1314,87 @@ class BiasEvaluator:
                 counts.index, counts.values, percentages.values
             ):
                 print(f"{value}: {count} ({percent}%)")
+                if output_dir:
+                    results.append(
+                        {
+                            "Split": name,
+                            "Column": col,
+                            "Value": value,
+                            "Count": count,
+                            "Percent": percent,
+                        }
+                    )
+
+            if output_dir:
+                self._save_analysis_plot(col, counts, name, output_dir)
+                all_counts_dict[col] = counts
+
+        if output_dir:
+            df_out = pd.DataFrame(results)
+            csv_path = os.path.join(output_dir, f"distribution_{name}.csv")
+            df_out.to_csv(csv_path, index=False)
+
+            self._save_combined_analysis_plot(all_counts_dict, name, output_dir)
+
+    def _save_analysis_plot(self, col, counts, name, output_dir):
+        plt.figure(figsize=(8, 4))
+        ax = counts.plot(kind="bar", color="#add8e6")
+        self._configure_plot_axes(ax, col, counts)
+        plt.title(
+            f"Distribution of {col} in {name} split", fontsize=13, fontweight="bold"
+        )
+        self._save_plot(col, name, output_dir)
+
+    def _save_plot(self, col, name, output_dir):
+        plt.tight_layout()
+        plot_path = os.path.join(output_dir, f"{name}_{col}_distribution.png")
+        plt.savefig(plot_path, bbox_inches="tight")
+        plt.close()
+
+    def _save_combined_analysis_plot(self, all_counts_dict, name, output_dir):
+        num_plots = len(all_counts_dict)
+        cols = 2
+        rows = math.ceil(num_plots / cols)
+        fig, axes = plt.subplots(rows, cols, figsize=(8 * cols, 4 * rows))
+
+        # In case axes is 1D, convert to 2D for uniform access
+        if rows == 1:
+            axes = np.array([axes])
+        if cols == 1:
+            axes = axes.reshape(-1, 1)
+
+        axes = axes.flatten()  # Flatten for easy indexing
+
+        for idx, (col, counts) in enumerate(all_counts_dict.items()):
+            ax = axes[idx]
+            counts.plot(kind="bar", ax=ax, color="#add8e6")
+            self._configure_plot_axes(ax, col, counts)
+            ax.set_title(f"{col}", fontsize=12, fontweight="bold")
+
+        # # Hide unused subplots
+        for i in range(len(all_counts_dict), len(axes)):
+            fig.delaxes(axes[i])
+
+        self._save_plot("overall", name, output_dir)
+
+    def _configure_plot_axes(self, ax, col, counts):
+        label_height = max(counts.values) * 0.1
+        for i, val in enumerate(counts.values):
+            ax.text(
+                i,
+                label_height,
+                str(val),
+                ha="center",
+                va="center",
+                fontsize=9,
+                color="black",
+                fontweight="bold",
+            )
+        ax.set_xlabel(col)
+        ax.set_ylabel("Count")
+        ax.set_xticklabels(
+            [str(label) for label in counts.index], rotation=0, ha="center"
+        )
 
 
 if __name__ == "__main__":
@@ -1285,7 +1413,9 @@ if __name__ == "__main__":
             self.terminal.flush()
             self.log.flush()
 
-    sys.stdout = Tee("bias_evaluation.log", mode="w")  # 'w' overwrites on each run
+    # sys.stdout = Tee("bias_evaluation.log", mode="w")  # 'w' overwrites on each run
+    sys.stdout = Tee("new_bias_evaluation.log", mode="w")  # 'w' overwrites on each run
+    # sys.stdout = Tee("split_evaluation.log", mode="w")  # 'w' overwrites on each run
     sys.stderr = sys.stdout  # optional: redirect errors too
 
     # from bias_evaluator import BiasEvaluator
@@ -1294,17 +1424,17 @@ if __name__ == "__main__":
 
     for split in [
         "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig__seed_32__passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country__seed_32__passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick__seed_32__passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex__seed_32__passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex_passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick__seed_32__passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick_passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_passion",  # unmatched data eerror
-        "experiment_stratified_validation_split_conditions__split_dataset__none__seed_32__passion",
-        "experiment_stratified_validation_split_conditions__split_dataset__none_passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country__seed_32__passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick__seed_32__passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex__seed_32__passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex_passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick__seed_32__passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick_passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_passion",  # unmatched data eerror
+        # "experiment_stratified_validation_split_conditions__split_dataset__none__seed_32__passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__none_passion",
         "experiment_standard_split_conditions_passion",
     ]:
         print(f"experiment {split}")
@@ -1318,5 +1448,8 @@ if __name__ == "__main__":
             run_detailed_evaluation=True,
         )
 
-    # evaluator.run_split_distribution_evaluation(test_split=True, create_splits=True)
-    # evaluator.run_split_distribution_evaluation(test_split=False, create_splits=True)
+    # evaluator = BiasEvaluator(
+    #     # passion_exp=f"{split}", target_names=target_names, labels=labels
+    # )
+    # # evaluator.run_split_distribution_evaluation(test_split=True, create_splits=True)
+    # evaluator.run_split_distribution_evaluation(test_split=False, create_splits=False)

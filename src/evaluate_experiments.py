@@ -53,10 +53,9 @@ my_parser.add_argument(
     help="If the experiment 6, differential diagnosis, should be run with different split files (5 folds).",
 )
 my_parser.add_argument(
-    "--split-nr",
-    type=int,
-    default=None,
-    help="If the experiment 5 or 6, index of the split file to evaluate (if ommitted, run all)",
+    "--exp7",
+    action="store_true",
+    help="If the experiment 6, evaluation with the passion dataset is done based on the checkpoint specified.",
 )
 
 my_parser.add_argument(
@@ -124,7 +123,7 @@ if __name__ == "__main__":
     if args.exp5:
         _config = copy.deepcopy(config)
         _config["fine_tuning"]["n_folds"] = None
-        _config["fine_tuning"]["train_from_scratch"] = True
+        _config["fine_tuning"]["train"] = True
         split_names = [
             "split_dataset__conditions_PASSION_impetig__seed_32",
             "split_dataset__conditions_PASSION_impetig_country__seed_32",
@@ -132,16 +131,15 @@ if __name__ == "__main__":
             "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex__seed_32",
             "split_dataset__conditions_PASSION_impetig_fitzpatrick__seed_32",
             "split_dataset__none__seed_32",
-            # "split_dataset__conditions_PASSION_impetig",
-            # "split_dataset__conditions_PASSION_impetig_country",
-            # "split_dataset__conditions_PASSION_impetig_country_fitzpatrick",
-            # "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex",
-            # "split_dataset__conditions_PASSION_impetig_fitzpatrick",
-            # "split_dataset__none",
+            "split_dataset__conditions_PASSION_impetig",
+            "split_dataset__conditions_PASSION_impetig_country",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex",
+            "split_dataset__conditions_PASSION_impetig_fitzpatrick",
+            "split_dataset__none",
         ]
 
-        if args.split_nr is not None:
-            split_name = split_names[args.split_nr]
+        for split_name in split_names:
             _config["dataset"]["passion"]["split_file"] = f"{split_name}.csv"
             trainer = ExperimentStratifiedValidationSplit(
                 dataset_name=DatasetName.PASSION,
@@ -152,23 +150,11 @@ if __name__ == "__main__":
                 add_info=f"conditions__{split_name}",
             )
             trainer.evaluate()
-        else:
-            for split_name in split_names:
-                _config["dataset"]["passion"]["split_file"] = f"{split_name}.csv"
-                trainer = ExperimentStratifiedValidationSplit(
-                    dataset_name=DatasetName.PASSION,
-                    config=_config,
-                    SSL_model=model,
-                    append_to_df=args.append_results,
-                    log_wandb=log_wandb,
-                    add_info=f"conditions__{split_name}",
-                )
-                trainer.evaluate()
 
     if args.exp6:
         _config = copy.deepcopy(config)
         _config["fine_tuning"]["n_folds"] = 5
-        _config["fine_tuning"]["train_from_scratch"] = True
+        _config["fine_tuning"]["train"] = True
         split_names = [
             "split_dataset__conditions_PASSION_impetig__seed_32",
             # "split_dataset__conditions_PASSION_impetig_country__seed_32",
@@ -184,8 +170,7 @@ if __name__ == "__main__":
             "split_dataset__none",
         ]
 
-        if args.split_nr is not None:
-            split_name = split_names[args.split_nr]
+        for split_name in split_names:
             _config["dataset"]["passion"]["split_file"] = f"{split_name}.csv"
             trainer = ExperimentStratifiedValidationSplit(
                 dataset_name=DatasetName.PASSION,
@@ -196,15 +181,34 @@ if __name__ == "__main__":
                 add_info=f"conditions__{split_name}",
             )
             trainer.evaluate()
-        else:
-            for split_name in split_names:
-                _config["dataset"]["passion"]["split_file"] = f"{split_name}.csv"
-                trainer = ExperimentStratifiedValidationSplit(
-                    dataset_name=DatasetName.PASSION,
-                    config=_config,
-                    SSL_model=model,
-                    append_to_df=args.append_results,
-                    log_wandb=log_wandb,
-                    add_info=f"conditions__{split_name}",
-                )
-                trainer.evaluate()
+
+    if args.exp7:
+        _config = copy.deepcopy(config)
+        _config["fine_tuning"]["n_folds"] = None
+        _config["fine_tuning"]["train"] = False
+        split_names = [
+            # "split_dataset__conditions_PASSION_impetig__seed_32",
+            # "split_dataset__conditions_PASSION_impetig_country__seed_32",
+            # "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex__seed_32",
+            # "split_dataset__conditions_PASSION_impetig_fitzpatrick__seed_32",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick",
+            # "split_dataset__none__seed_32",
+            # "split_dataset__conditions_PASSION_impetig_country",
+            # "split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex",
+            # "split_dataset__conditions_PASSION_impetig_fitzpatrick",
+            # "split_dataset__conditions_PASSION_impetig",
+            "split_dataset__conditions_PASSION_impetig_country_fitzpatrick__seed_32",
+            # "split_dataset__none",
+        ]
+
+        for split_name in split_names:
+            trainer = ExperimentStandardSplit(
+                dataset_name=DatasetName.PASSION,
+                config=_config,
+                SSL_model=model,
+                model_path=f"experiment_stratified_validation_split_conditions__{split_name}__passion__{model}",
+                append_to_df=args.append_results,
+                log_wandb=log_wandb,
+                add_info=f"conditions__model_trained_with_{split_name}",
+            )
+            trainer.evaluate()

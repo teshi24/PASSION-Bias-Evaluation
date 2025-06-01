@@ -54,6 +54,7 @@ class EvaluationTrainer(ABC, object):
         SSL_model: str = "imagenet",
         output_path: Union[Path, str] = "assets/evaluation",
         cache_path: Union[Path, str] = "assets/evaluation/cache",
+        model_path: Union[Path, str] = None,
         n_layers: int = 1,
         append_to_df: bool = False,
         wandb_project_name: str = "PASSION-Evaluation",
@@ -75,7 +76,10 @@ class EvaluationTrainer(ABC, object):
         )
         self.df_name = f"{self.df_description}.csv"
         self.df_path = self.output_path / self.df_name
+
         self.model_path = self.output_path / self.df_description
+        if model_path:
+            self.model_path = self.output_path / model_path
 
         # make sure the output and cache path exist
         self.output_path.mkdir(parents=True, exist_ok=True)
@@ -160,8 +164,8 @@ class EvaluationTrainer(ABC, object):
             self.cache_path / f"{dataset_name.value}_{self.experiment_name}.pickle"
         )
         # TODO: check
-        # if False:
-        if cache_file.exists():
+        if False:
+            # if cache_file.exists():
             print(f"Found cached file loading: {cache_file}")
             with open(cache_file, "rb") as file:
                 cached_dict = pickle.load(file)
@@ -233,7 +237,7 @@ class EvaluationTrainer(ABC, object):
                 split_name,
             ) in self.split_dataframe_iterator():
                 if (
-                    config.get("train_from_scratch", True)
+                    config.get("train", True)
                     and config.get("n_folds", None) is not None
                 ):
                     k_fold = StratifiedGroupKFold(

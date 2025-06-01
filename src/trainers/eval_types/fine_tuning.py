@@ -83,7 +83,7 @@ class EvalFineTuning(BaseEvalType):
         use_lr_scheduler: bool = False,
         log_wandb: bool = False,
         debug: bool = False,
-        train_from_scratch: bool = True,
+        train: bool = True,
         **kwargs,
     ) -> dict:
         cls.input_size = input_size
@@ -98,7 +98,7 @@ class EvalFineTuning(BaseEvalType):
             num_workers=num_workers,
         )
 
-        if train_from_scratch is True:
+        if train is True:
             classifier, model = cls.create_classifier(
                 dataset, dropout_in_head, model, model_out_dim, use_bn_in_head
             )
@@ -139,7 +139,7 @@ class EvalFineTuning(BaseEvalType):
         to_restore = {"epoch": 0}
         start_epoch = to_restore["epoch"]
         # TODO: fix this here
-        if train_from_scratch is False:
+        if train is False:
             if saved_model_path is not None:
                 # Path to the checkpoint file
                 checkpoint_path = saved_model_path / "checkpoints" / "model_best.pth"
@@ -182,7 +182,7 @@ class EvalFineTuning(BaseEvalType):
             num_classes=metric_param["num_classes"],
         ).to(device)
 
-        if train_from_scratch is True:
+        if train is True:
             # start training
             epoch, step = start_epoch, 0
             eval_scores_dict = {
@@ -324,7 +324,7 @@ class EvalFineTuning(BaseEvalType):
         indices = torch.concat(indices).numpy()
 
         f1_score = -1
-        if train_from_scratch is True:
+        if train is True:
             f1_score = float(eval_scores_dict["f1"]["scores"][best_epoch] * 100)
         results = {
             "score": f1_score,
