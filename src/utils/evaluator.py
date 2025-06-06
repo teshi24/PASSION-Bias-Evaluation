@@ -1414,7 +1414,11 @@ if __name__ == "__main__":
             self.log.flush()
 
     # sys.stdout = Tee("bias_evaluation.log", mode="w")  # 'w' overwrites on each run
-    sys.stdout = Tee("new_bias_evaluation.log", mode="w")  # 'w' overwrites on each run
+    # sys.stdout = Tee("new_bias_evaluation.log", mode="w")  # 'w' overwrites on each run
+    sys.stdout = Tee(
+        "baseline_bias_evaluation.log", mode="w"
+    )  # 'w' overwrites on each run
+    # sys.stdout = Tee("baseline_bias_evaluation__big_model.log", mode="w")  # 'w' overwrites on each run
     # sys.stdout = Tee("split_evaluation.log", mode="w")  # 'w' overwrites on each run
     sys.stderr = sys.stdout  # optional: redirect errors too
 
@@ -1423,18 +1427,18 @@ if __name__ == "__main__":
     labels = [0, 1, 2, 3]
 
     for split in [
-        "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig__seed_32__passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country__seed_32__passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick__seed_32__passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex__seed_32__passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex_passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick__seed_32__passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick_passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_passion",  # unmatched data eerror
-        # "experiment_stratified_validation_split_conditions__split_dataset__none__seed_32__passion",
-        # "experiment_stratified_validation_split_conditions__split_dataset__none_passion",
+        # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig__seed_32__passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country__seed_32__passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick__seed_32__passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex__seed_32__passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_fitzpatrick_sex_passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_country_passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick__seed_32__passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_fitzpatrick_passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__conditions_PASSION_impetig_passion",  # unmatched data eerror
+        # # "experiment_stratified_validation_split_conditions__split_dataset__none__seed_32__passion",
+        # # "experiment_stratified_validation_split_conditions__split_dataset__none_passion",
         "experiment_standard_split_conditions_passion",
     ]:
         print(f"experiment {split}")
