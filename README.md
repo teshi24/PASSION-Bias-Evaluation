@@ -13,6 +13,10 @@ To reproduce our experiments, we list the detailed comments needed for replicati
 Note that our experiments were run on a DGX Workstation 1.
 If less computational power is available, this would require adaptations of the configuration file.
 
+For any experiment, the _label_ and _PASSION_split_ files must be available in the _data_ folder, as well as the PASSION data.
+Access to the data must be requested via PASSION's webpage: https://passionderm.github.io/.
+
+
 ### Experiment: Differential Diagnosis and Detecting Impetigo (Table 2 and 3)
 > python -m src.evaluate_experiments --config_path configs/default.yaml --exp1 --exp2
 
@@ -21,30 +25,22 @@ If less computational power is available, this would require adaptations of the 
 
 
 ### Fairness Evaluation as of Bachelor Thesis "Demographic Biases in Dermatology AI"
-TODO: Fix docu!!!, include docu of the configs file
+The fairness evaluation pipeline introduced in that thesis has been added as the evaluator class.
+The fairness evaluation is run directly for the fine-tuning process. It can be disabled by setting the _detailed_evaluation_ config to false.
 
-**Note: The code still must be cleaned and pushed to the original project, which will be done in the following days (as of 6.6.2025).**
-
-The evaluator class got introduced to evaluate fairness. Also, the stratified splits experiment can be executed with this class.
-
-For any experiment, the _label_ and _PASSION_split_ files must be available in the _data_ folder. They can be gathered from PASSION's repository or the zip file in the thesis.
-
-If there is no experiment file with predictions existing, run the PASSION experiments as indicated above. Note: Currently, the code has only been tested on exp1.
-The fairness evaluation is run directly for the fine-tuning process. This could be disabled by setting the _detailed_evaluation_ config to false.
-
-If an experiment file is available in _assets/evaluation_, the evaluator can be started directly, using
+The evaluator can also be started independently, if an experiment output file is available in _assets/evaluation_, after some adaptions in the `__main__`-block.
+Start the run using
 > cd src/utils/
 > python -m evaluator
 
-The experiment files of the thesis can be used this way. Note that the evaluator is not yet configurable, therefore, the filenames must be enabled by uncommenting them in the evaluator class in the _main_ section.
-_This is planned to be cleaned up._
+#### Stratified splitting experiments: exp5 - 7
+> python -m src.evaluate_experiments --config_path configs/default.yaml --exp5 --exp6 --exp7
 
-To create the stratified splits, the evaluator class must be adapted, by enabling _evaluator.run_split_distribution_evaluation_ in the _main_ section and running the same script as above. Use _create_splits=True_ to create the splits. The current implementation replicates the variant with seed 32. The other version requires code adaptions.
-_This is also planned to be cleaned up._
+In the background, those experiments will create stratified splits. Records in low support groups (support=1) will be added to the training set.
 
-In order to recreate the full experiment, the data has to be requested via PASSION's webpage, as stated in the thesis. Consider that the currently activated model is the ResNet18 (referred as _imagenet_tiny_ in the code).
-
-
+This creation could also be triggered independently, including a distribution analysis, using
+> cd src/utils/
+> python -m stratified_split_generator
 
 ## Code and test conventions
 - `black` for code style

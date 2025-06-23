@@ -166,11 +166,9 @@ class StratifiedSplitGenerator:
             "ageGroup",
         ]
 
-        splits_to_evaluate = [(self.df_split, "PASSION_split")]
+        splits_to_evaluate = [(self.df_split, "PASSION_split", "igored")]
         if create_splits:
-            splits_to_evaluate.extend(
-                self._create_stratified_splits(splits_to_evaluate)
-            )
+            splits_to_evaluate.extend(self._create_stratified_splits())
 
         # Ensure output directory
         output_dir = "distribution_outputs"
@@ -348,8 +346,8 @@ if __name__ == "__main__":
     evaluator = StratifiedSplitGenerator(
         passion_exp=f"experiment_stratified_validation_split_conditions"
     )
-    created_splits = evaluator.create_stratified_splits()
-    print(f"created_splits: {created_splits}")
-
+    # to only run the split creation
+    # created_splits = evaluator.create_stratified_splits()
     # to run the split creation and evaluation
-    # created_splits = evaluator.run_split_distribution_evaluation(create_splits=True)
+    created_splits = evaluator.run_split_distribution_evaluation(create_splits=True)
+    print(f"created_splits: {created_splits}")
