@@ -39,7 +39,7 @@ class StratifiedSplitGenerator:
         self.out_dir = self.eval_data_path / passion_exp
         os.makedirs(self.out_dir, exist_ok=True)
 
-        # todo: only read once in the whole pipeline
+        # TODO: only read once in the whole pipeline
         self.df_labels = pd.read_csv(self.dataset_dir / meta_data_file)
         self.df_split = pd.read_csv(self.dataset_dir / split_file)
 
@@ -155,7 +155,7 @@ class StratifiedSplitGenerator:
         final_df.to_csv(path, index=False)
         return final_df, stratify_str, path
 
-    # todo: extend to do it on the picture level, not only on subject level
+    # TODO: extend to do it on the picture level, not only on subject level
     def run_split_distribution_evaluation(self, create_splits: bool = False):
         interesting_cols = [
             "country",
@@ -219,7 +219,7 @@ class StratifiedSplitGenerator:
         df = self.df_labels.copy().merge(self.df_split, on="subject_id", how="left")
         df.reset_index(drop=True, inplace=True)
         splits = [(self._create_split(df)), (self._create_split(df, seed=32))]
-        # todo: make splitting columns configurable
+        # TODO: make splitting columns configurable
         stratify_columns_sets = [
             ["conditions_PASSION", "impetig"],
             ["conditions_PASSION", "impetig", "country"],

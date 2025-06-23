@@ -3,7 +3,7 @@ batch_size: &batch_size 64
 seed: 42
 log_wandb: true
 input_size: &input_size 224
-#TODO: set to imagenet after last test
+#TODO NADJA: set to imagenet after last test
 model: "imagenet_tiny"
 
 dataset:
@@ -15,7 +15,7 @@ dataset:
       target_names: ["Eczema", "Fungal", "Others", "Scabies"]
       labels: [0, 1, 2, 3]
     impetigo_labels:
-      # TODO: fix impetigo_label config & test quickly
+      # TODO NADJA: fix impetigo_label config & test quickly
       target_names: ["xx", "yy"]
       labels: [0, 1]
 

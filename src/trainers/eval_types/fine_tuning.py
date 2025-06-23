@@ -335,7 +335,7 @@ class EvalFineTuning(BaseEvalType):
     def save_model_checkpoint(
         cls, classifier, criterion, epoch, optimizer, saved_model_path
     ):
-        # todo: consider saving classifier.state_dict() only
+        # TODO: consider saving classifier.state_dict() only
         save_dict = {
             "arch": type(classifier).__name__,
             "epoch": epoch,

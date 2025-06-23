@@ -166,15 +166,13 @@ class EvaluationTrainer(ABC, object):
         cache_file = (
             self.cache_path / f"{dataset_name.value}_{self.experiment_name}.pickle"
         )
-        # TODO: remove before loading
-        if False:
-            # if cache_file.exists():
+        if cache_file.exists():
             print(f"Found cached file loading: {cache_file}")
             with open(cache_file, "rb") as file:
                 cached_dict = pickle.load(file)
             self.emb_space = cached_dict["embedding_space"]
             self.labels = cached_dict["labels"]
-            # todo: figure out where this is reloaded / should be used
+            # TODO: figure out where this is reloaded / should be used
             self.paths = cached_dict["paths"]
             self.indices = cached_dict["indices"]
             del cached_dict
@@ -316,7 +314,7 @@ class EvaluationTrainer(ABC, object):
         self.df.to_csv(self.df_path, index=False)
         if detailed_evaluation:
             # Detailed evaluation
-            # todo remove this analysis once binary eval is supported too
+            # TODO Nadja potentially: remove this analysis once binary eval is supported too
             print("*" * 20 + f" {e_type.name()} " + "*" * 20)
             self.print_eval_scores(
                 y_true=score_dict["targets"],
