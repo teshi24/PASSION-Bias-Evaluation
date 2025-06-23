@@ -137,21 +137,19 @@ class EvalFineTuning(BaseEvalType):
         # load the model from checkpoint if provided
         to_restore = {"epoch": 0}
         start_epoch = to_restore["epoch"]
-        # TODO: fix this here
+        # TODO: fix whole reloading, including the epoch restoration
         if train is False:
             if saved_model_path is not None:
                 # Path to the checkpoint file
                 checkpoint_path = saved_model_path / "checkpoints" / "model_best.pth"
                 checkpoint = torch.load(checkpoint_path, weights_only=False)
                 # Restore model
-                classifier = checkpoint[
-                    "classifier"
-                ]  # This only works if it was stored with full model object (not recommended!)
+                classifier = checkpoint["classifier"]
                 classifier.to(device)
                 cls.print_model(classifier, debug, model)
                 if log_wandb:
                     wandb.watch(classifier, log="all", log_freq=len(train_loader))
-                # TODO: Better: use state_dict, like this:
+                # TODO: This approach above only works if the checkpoint was saved with full model object, instead, only save the state_dict, like this:
                 # classifier = YourModelClass(...)
                 # classifier.load_state_dict(checkpoint["classifier_state_dict"])
 
@@ -239,8 +237,7 @@ class EvalFineTuning(BaseEvalType):
                         scheduler.step()
 
                     # W&B logging if needed
-                    # todo: set back to ig log_wandb:
-                    if log_wandb and (step % 20 == 0):
+                    if log_wandb:
                         log_dict = {
                             "train_loss": loss.item(),
                             "train_f1": f1_score_train(pred, target),

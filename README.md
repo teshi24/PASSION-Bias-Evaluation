@@ -21,6 +21,8 @@ If less computational power is available, this would require adaptations of the 
 
 
 ### Fairness Evaluation as of Bachelor Thesis "Demographic Biases in Dermatology AI"
+TODO: Fix docu!!!, include docu of the configs file
+
 **Note: The code still must be cleaned and pushed to the original project, which will be done in the following days (as of 6.6.2025).**
 
 The evaluator class got introduced to evaluate fairness. Also, the stratified splits experiment can be executed with this class.

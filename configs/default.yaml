@@ -3,6 +3,8 @@ batch_size: &batch_size 64
 seed: 42
 log_wandb: true
 input_size: &input_size 224
+#TODO: set to imagenet after last test
+model: "imagenet_tiny"
 
 dataset:
   passion:

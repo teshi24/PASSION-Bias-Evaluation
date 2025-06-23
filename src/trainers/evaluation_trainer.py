@@ -33,6 +33,8 @@ from src.trainers.eval_types.dummy_classifier import (
     EvalDummyUniform,
 )
 from src.trainers.eval_types.fine_tuning import EvalFineTuning
+from src.trainers.eval_types.knn import EvalKNN
+from src.trainers.eval_types.lin import EvalLin
 from src.utils.evaluator import BiasEvaluator
 from src.utils.utils import fix_random_seeds
 
@@ -43,6 +45,8 @@ eval_type_dict = {
     "dummy_constant": EvalDummyConstant,
     # Models
     "fine_tuning": EvalFineTuning,
+    # "kNN": EvalKNN,
+    # "lin": EvalLin,
 }
 
 
@@ -162,7 +166,7 @@ class EvaluationTrainer(ABC, object):
         cache_file = (
             self.cache_path / f"{dataset_name.value}_{self.experiment_name}.pickle"
         )
-        # TODO: check
+        # TODO: remove before loading
         if False:
             # if cache_file.exists():
             print(f"Found cached file loading: {cache_file}")
@@ -185,10 +189,8 @@ class EvaluationTrainer(ABC, object):
                 torch_dataset=self.torch_dataset,
                 model=self.model,
                 n_layers=n_layers,
-                # memmap=False,
                 normalize=False,
             )
-            # todo: what with those imgs
             # save the embeddings and issues to cache
             save_dict = {
                 "embedding_space": self.emb_space,
@@ -244,7 +246,6 @@ class EvaluationTrainer(ABC, object):
                         random_state=self.seed,
                         shuffle=True,
                     )
-                    # todo: here, maybe add the minority groups if needed, e.g. skin type
                     labels = self.dataset.meta_data.loc[
                         train_valid_range, self.dataset.LBL_COL
                     ].values
@@ -332,13 +333,6 @@ class EvaluationTrainer(ABC, object):
                 )
 
         self.finish_wandb(e_type)
-        # save the results to the overall dataframe + save df
-        # self.df.loc[len(self.df)] = list(score_dict.values()) + [
-        #     split_name,
-        #     add_run_info,
-        #     e_type.name(),
-        # ]
-        # self.df.to_csv(self.df_path, index=False)
 
     def finish_wandb(self, e_type):
         # finish the W&B run if needed
