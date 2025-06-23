@@ -3,8 +3,7 @@ batch_size: &batch_size 64
 seed: 42
 log_wandb: true
 input_size: &input_size 224
-#TODO NADJA: set to imagenet after last test
-model: "imagenet_tiny"
+model: "imagenet"
 
 dataset:
   passion:
@@ -15,8 +14,7 @@ dataset:
       target_names: ["Eczema", "Fungal", "Others", "Scabies"]
       labels: [0, 1, 2, 3]
     impetigo_labels:
-      # TODO NADJA: fix impetigo_label config & test quickly
-      target_names: ["xx", "yy"]
+      target_names: ["not impetiginized", "impetiginized"]
       labels: [0, 1]
 
 # these keys define the eval types

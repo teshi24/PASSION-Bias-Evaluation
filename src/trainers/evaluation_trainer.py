@@ -314,7 +314,7 @@ class EvaluationTrainer(ABC, object):
         self.df.to_csv(self.df_path, index=False)
         if detailed_evaluation:
             # Detailed evaluation
-            # TODO Nadja potentially: remove this analysis once binary eval is supported too
+            # TODO: remove this backup analysis once binary eval is supported in the evaluator too
             print("*" * 20 + f" {e_type.name()} " + "*" * 20)
             self.print_eval_scores(
                 y_true=score_dict["targets"],

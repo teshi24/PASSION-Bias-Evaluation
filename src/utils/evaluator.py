@@ -25,6 +25,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 
 
+# TODO: ignore subgroups with low support and indicate which groups have been ignored in the output
 class BiasEvaluator:
     def __init__(
         self,
