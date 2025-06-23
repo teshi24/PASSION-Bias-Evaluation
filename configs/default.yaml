@@ -1,25 +1,21 @@
----
 # global configs for experiments
 batch_size: &batch_size 64
 seed: 42
 log_wandb: true
-input_size: &input_size 224  # was 224
+input_size: &input_size 224
 
-# data paths
 dataset:
   passion:
     path: "data/PASSION"
     meta_data_file: "label.csv"
-    # path: "data/mini_data"
     split_file: "PASSION_split.csv"
     condition_labels:
       target_names: ["Eczema", "Fungal", "Others", "Scabies"]
       labels: [0, 1, 2, 3]
     impetigo_labels:
-      # TODO: fix impetigo_label config
+      # TODO: fix impetigo_label config & test quickly
       target_names: ["xx", "yy"]
       labels: [0, 1]
-  # num_workers: 24
 
 # these keys define the eval types
 dummy_uniform:
@@ -50,8 +46,8 @@ fine_tuning:
   warmup_epochs: 10
   early_stopping_patience: 20
   num_workers: 24
+  train: true
   debug: true
   # head parameters
   use_bn_in_head: true
   dropout_in_head: 0.4
-  train: true

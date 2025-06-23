@@ -117,8 +117,7 @@ class EvaluationTrainer(ABC, object):
         self.input_size = config["input_size"]
         self.transform = transforms.Compose(
             [
-                transforms.Resize((144, 144)),  # todo: activate for input_size 128
-                # transforms.Resize((256, 256)),  # activate for input_size 224
+                transforms.Resize((256, 256)),
                 transforms.CenterCrop(self.input_size),
                 transforms.ToTensor(),
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),

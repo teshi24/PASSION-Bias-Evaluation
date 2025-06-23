@@ -47,10 +47,9 @@ class EvalFineTuning(BaseEvalType):
 
     @classmethod
     def val_transform(cls):
-        resize_size = 256 if cls.input_size == 224 else 160
         return transforms.Compose(
             [
-                transforms.Resize(resize_size, interpolation=InterpolationMode.BICUBIC),
+                transforms.Resize(256, interpolation=InterpolationMode.BICUBIC),
                 transforms.CenterCrop(cls.input_size),
                 transforms.ToTensor(),
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
@@ -477,7 +476,7 @@ class EvalFineTuning(BaseEvalType):
     ):
         train_dataset = copy.deepcopy(dataset)
         train_dataset.transform = cls.train_transform()
-        train_dataset.train_data_only = True
+        train_dataset.training = True
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,

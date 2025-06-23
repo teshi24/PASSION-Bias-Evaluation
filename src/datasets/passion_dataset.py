@@ -145,6 +145,6 @@ class PASSIONDataset(GenericImageDataset):
         elif self.val_transform and not self.training:
             image = self.val_transform(image)
 
-        if self.train_data_only:
+        if self.training:
             return image, int(diagnosis)
         return image, img_name, int(diagnosis), index
